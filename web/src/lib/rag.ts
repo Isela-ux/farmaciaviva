@@ -13,6 +13,7 @@ import type { FichaPlanta, PlantaCatalogo, PlantEmbedding } from "@/types/databa
 
 const EMBEDDING_MODEL = "gemini-embedding-001";
 const CHAT_MODEL = "gemini-2.5-flash";
+const LIMITE_CONTEXTO = 3;
 
 export type MensajeConversacion = { role: string; content: string };
 
@@ -117,12 +118,14 @@ function textoContextoDesdeFicha(ficha: FichaPlanta): string {
 async function chunksDesdePlantas(
   plantas: PlantaCatalogo[]
 ): Promise<PlantEmbedding[]> {
-  const chunks: PlantEmbedding[] = [];
+  const fichas = await Promise.all(
+    plantas.map((p) => obtenerFichaPlanta(p.nombreComun.id_especie))
+  );
 
-  for (const p of plantas) {
-    const ficha = await obtenerFichaPlanta(p.nombreComun.id_especie);
-    chunks.push({
-      id: chunks.length,
+  return plantas.map((p, i) => {
+    const ficha = fichas[i];
+    return {
+      id: i,
       id_especie: p.nombreComun.id_especie,
       chunk_type: "ficha_completa",
       content: ficha
@@ -130,10 +133,27 @@ async function chunksDesdePlantas(
         : `${p.nombreComun.nombre_comun} (${p.nombreCientifico ?? "sin nombre científico"})`,
       metadata: { nombre_comun: p.nombreComun.nombre_comun },
       similarity: 0.8,
-    });
-  }
+    };
+  });
+}
 
-  return chunks;
+async function buscarPorVector(
+  consulta: string,
+  limite: number
+): Promise<PlantEmbedding[]> {
+  try {
+    const supabase = await createClient();
+    const embedding = await generarEmbedding(consulta);
+    const { data, error } = await supabase.rpc("match_plant_embeddings", {
+      query_embedding: embedding,
+      match_threshold: 0.45,
+      match_count: limite,
+    });
+    if (!error && data?.length) return data as PlantEmbedding[];
+  } catch {
+    // Sin embeddings indexados
+  }
+  return [];
 }
 
 function unificarPlantas(...listas: PlantaCatalogo[][]): PlantaCatalogo[] {
@@ -168,58 +188,54 @@ export async function buscarContextoRAG(
   consulta: string,
   opciones?: { mensajes?: MensajeConversacion[]; limite?: number }
 ): Promise<PlantEmbedding[]> {
-  const limite = opciones?.limite ?? 6;
+  const limite = opciones?.limite ?? LIMITE_CONTEXTO;
   const mensajes = opciones?.mensajes ?? [];
   const consultaActual = consulta.trim();
 
   const textoConversacion = mensajes.map((m) => m.content).join("\n");
   const consultaExpandida = construirConsultaRAG(mensajes, consultaActual);
+  const consultaVector =
+    consultaActual.length >= 8 ? consultaActual : consultaExpandida;
 
-  const plantasMencionadas = await buscarPlantasMencionadasEnTexto(textoConversacion, limite);
-  const plantasPorBusqueda = await buscarPlantasPorTexto(consultaExpandida, limite);
+  const [plantasMencionadas, plantasPorBusqueda] = await Promise.all([
+    buscarPlantasMencionadasEnTexto(textoConversacion, limite),
+    buscarPlantasPorTexto(consultaExpandida, limite),
+  ]);
+
   const plantas = unificarPlantas(plantasMencionadas, plantasPorBusqueda);
 
   if (plantas.length > 0) {
     return chunksDesdePlantas(plantas.slice(0, limite));
   }
 
-  const supabase = await createClient();
-
-  try {
-    const embedding = await generarEmbedding(consultaExpandida);
-    const { data, error } = await supabase.rpc("match_plant_embeddings", {
-      query_embedding: embedding,
-      match_threshold: 0.45,
-      match_count: limite,
-    });
-
-    if (!error && data?.length) {
-      return data as PlantEmbedding[];
-    }
-  } catch {
-    // Sin embeddings indexados
-  }
-
-  return [];
+  return buscarPorVector(consultaVector, limite);
 }
 
 export function construirPromptSistema(contexto: PlantEmbedding[]): string {
   const fragmentos = contexto
-    .map(
-      (c, i) =>
-        `[${i + 1}] Especie #${c.id_especie} (${c.chunk_type}):\n${c.content}`
-    )
+    .map((c) => {
+      const nombre =
+        (c.metadata?.nombre_comun as string | undefined) ||
+        c.content.split("\n")[0]?.replace(/^Planta:\s*/, "") ||
+        "Planta";
+      return `### ${nombre}\n${c.content}`;
+    })
     .join("\n\n");
 
   return `Eres el asistente de Farmacia Viva, un recurso educativo sobre plantas medicinales de México.
 
 REGLAS:
-- Responde con base en el CONTEXTO RECUPERADO y en el historial de la conversación.
-- Si el usuario hace una pregunta de seguimiento ("sus usos", "y dónde", "esa planta"), infiere de qué planta habla según mensajes anteriores y el contexto.
-- Si el contexto incluye la planta, responde con esos datos; no digas que no está en el catálogo.
-- Cita las fuentes numeradas [1], [2], etc. cuando uses información del contexto.
-- No des consejos médicos definitivos; incluye advertencias sobre consultar a un profesional de salud.
-- Responde en español, de forma clara y accesible.
+- Responde SOLO con información del CONTEXTO RECUPERADO y el historial.
+- Sé breve: máximo 150 palabras salvo que pidan varias plantas.
+- Formato obligatorio en markdown limpio:
+  - Una planta: párrafo claro con viñetas (- ) para usos o propiedades.
+  - Varias plantas: sección por planta con encabezado ## Nombre común
+  - Usa **Usos**, **Propiedades**, **Preparación** como etiquetas en negrita.
+- NO uses corchetes [1], [2], ids técnicos ni "Especie #".
+- NO repitas el contexto crudo; redacta para el usuario final.
+- Preguntas de seguimiento: infiere la planta del historial.
+- Incluye una breve advertencia de consultar a un profesional de salud.
+- Español claro y accesible.
 
 CONTEXTO RECUPERADO:
 ${fragmentos || "(Sin coincidencias en el catálogo para esta consulta)"}`;

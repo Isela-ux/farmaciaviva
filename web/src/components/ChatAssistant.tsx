@@ -3,8 +3,9 @@
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
 import type { UIMessage } from "ai";
-import { useRef, useEffect, useState } from "react";
+import { useRef, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { AssistantMessage } from "@/components/AssistantMessage";
 
 const SUGERENCIAS = [
   "¿Para qué se usa la manzanilla?",
@@ -24,9 +25,11 @@ function textoMensaje(m: UIMessage): string {
 export function ChatAssistant() {
   const finRef = useRef<HTMLDivElement>(null);
   const [input, setInput] = useState("");
-  const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({ api: "/api/chat" }),
-  });
+  const transport = useMemo(
+    () => new DefaultChatTransport({ api: "/api/chat" }),
+    []
+  );
+  const { messages, sendMessage, status, error } = useChat({ transport });
 
   const cargando = status === "submitted" || status === "streaming";
 
@@ -77,22 +80,27 @@ export function ChatAssistant() {
             key={m.id}
             className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
           >
-            <div
-              className={`max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed ${
-                m.role === "user"
-                  ? "bg-hero-green text-white"
-                  : "bg-mint-light text-forest"
-              }`}
-            >
-              <p className="whitespace-pre-wrap">{textoMensaje(m)}</p>
-            </div>
+            {m.role === "user" ? (
+              <div className="max-w-[85%] rounded-2xl bg-hero-green px-4 py-2.5 text-sm leading-relaxed text-white">
+                <p className="whitespace-pre-wrap">{textoMensaje(m)}</p>
+              </div>
+            ) : (
+              <div className="w-full max-w-[92%] space-y-2 rounded-2xl bg-mint-light/60 p-3 text-sm text-forest sm:max-w-[85%]">
+                <AssistantMessage texto={textoMensaje(m)} />
+              </div>
+            )}
           </div>
         ))}
 
         {cargando && (
           <div className="flex justify-start">
-            <div className="rounded-2xl bg-mint-light px-4 py-2.5 text-sm text-earth-soft">
-              Consultando el catálogo…
+            <div className="flex items-center gap-2 rounded-2xl bg-mint-light px-4 py-2.5 text-sm text-earth-soft">
+              <span className="inline-flex gap-1">
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-hero-green [animation-delay:0ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-hero-green [animation-delay:150ms]" />
+                <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-hero-green [animation-delay:300ms]" />
+              </span>
+              Buscando en el catálogo…
             </div>
           </div>
         )}
@@ -101,9 +109,14 @@ export function ChatAssistant() {
           <div className="rounded-xl border border-accent-coral/30 bg-accent-coral/10 px-4 py-3 text-sm text-accent-coral">
             {error.message.includes("API key") || error.message.includes("503")
               ? "Configura GOOGLE_GENERATIVE_AI_API_KEY en .env.local para activar el asistente."
-              : error.message.includes("quota") || error.message.includes("Quota")
-                ? "Cuota de Gemini agotada. Espera un minuto e intenta de nuevo."
-                : error.message || "Ocurrió un error. Reinicia npm run dev si acabas de cambiar .env.local."}
+              : error.message.includes("quota") ||
+                  error.message.includes("Quota") ||
+                  error.message.includes("Cuota") ||
+                  error.message.includes("429")
+                ? "Cuota de Gemini agotada. Espera 1 minuto e intenta de nuevo."
+                : error.message && error.message !== "An error occurred."
+                  ? error.message
+                  : "No se pudo obtener respuesta. Recarga la página e intenta de nuevo."}
           </div>
         )}
         <div ref={finRef} />
