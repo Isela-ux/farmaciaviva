@@ -11,5 +11,7 @@
 /build
 /captures
 .externalNativeBuild
-.cxx
 local.properties
+/web/.env.local
+/web/node_modules
+/web/.next

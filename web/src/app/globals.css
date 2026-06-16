@@ -1,0 +1,46 @@
+@import "tailwindcss";
+
+:root {
+  --forest-deep: #081c15;
+  --forest: #1b4332;
+  --leaf-bright: #2d6a4f;
+  --hero-green: #40916c;
+  --sage: #74c69d;
+  --mint: #b7e4c7;
+  --mint-light: #d8f3dc;
+  --sun-gold: #ffb703;
+  --sun-amber: #fb8500;
+  --cream: #fff8e7;
+  --earth: #2b2d2a;
+  --earth-soft: #5c5f58;
+  --botanical: #f9fdfb;
+  --page-bg: #e8f5e9;
+  --card-white: #ffffff;
+  --accent-coral: #e76f51;
+}
+
+@theme inline {
+  --color-forest-deep: var(--forest-deep);
+  --color-forest: var(--forest);
+  --color-leaf-bright: var(--leaf-bright);
+  --color-hero-green: var(--hero-green);
+  --color-sage: var(--sage);
+  --color-mint: var(--mint);
+  --color-mint-light: var(--mint-light);
+  --color-sun-gold: var(--sun-gold);
+  --color-sun-amber: var(--sun-amber);
+  --color-cream: var(--cream);
+  --color-earth: var(--earth);
+  --color-earth-soft: var(--earth-soft);
+  --color-botanical: var(--botanical);
+  --color-page-bg: var(--page-bg);
+  --color-card-white: var(--card-white);
+  --color-accent-coral: var(--accent-coral);
+  --font-sans: var(--font-geist-sans);
+}
+
+body {
+  background: var(--page-bg);
+  color: var(--earth);
+  font-family: var(--font-sans), system-ui, sans-serif;
+}
