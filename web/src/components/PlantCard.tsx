@@ -8,9 +8,9 @@ export function PlantCard({ planta }: { planta: PlantaCatalogo }) {
   return (
     <Link
       href={`/planta/${nombreComun.id_especie}?nombre=${encodeURIComponent(nombreComun.nombre_comun)}`}
-      className="group flex flex-col overflow-hidden rounded-2xl border border-forest/10 bg-card-white shadow-sm transition hover:-translate-y-0.5 hover:shadow-md"
+      className="group flex flex-col overflow-hidden rounded-xl border-2 border-sun-gold/20 bg-card-white shadow-sm ring-1 ring-forest/5 transition hover:-translate-y-0.5 hover:border-sun-gold/40 hover:shadow-md"
     >
-      <div className="relative aspect-[4/3] bg-mint-light">
+      <div className="relative aspect-[4/3] bg-gradient-to-b from-mint-light/50 to-white">
         {imagenUrl ? (
           <Image
             src={imagenUrl}
@@ -25,15 +25,22 @@ export function PlantCard({ planta }: { planta: PlantaCatalogo }) {
         )}
       </div>
       <div className="flex flex-1 flex-col gap-1 p-4">
-        <h3 className="font-semibold text-forest group-hover:text-hero-green">
+        <h3 className="font-semibold text-forest group-hover:text-leaf-bright">
           {nombreComun.nombre_comun}
         </h3>
         {nombreCientifico && (
           <p className="text-sm italic text-earth-soft">{nombreCientifico}</p>
         )}
-        <p className="mt-auto text-xs text-earth-soft">
-          {nombreComun.idioma} · {nombreComun.region_uso}
-        </p>
+        <div className="mt-1 flex flex-wrap gap-1.5">
+          {planta.nombreFamilia && (
+            <span className="rounded-md border border-sun-gold/25 bg-cream/80 px-2 py-0.5 text-xs font-medium text-forest">
+              {planta.nombreFamilia}
+            </span>
+          )}
+          <span className="rounded-md border border-forest/10 bg-botanical px-2 py-0.5 text-xs text-earth-soft">
+            {nombreComun.region_uso}
+          </span>
+        </div>
       </div>
     </Link>
   );

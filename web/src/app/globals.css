@@ -9,14 +9,16 @@
   --mint: #b7e4c7;
   --mint-light: #d8f3dc;
   --sun-gold: #ffb703;
-  --sun-amber: #fb8500;
+  --sun-amber: #e09f00;
   --cream: #fff8e7;
   --earth: #2b2d2a;
   --earth-soft: #5c5f58;
   --botanical: #f9fdfb;
-  --page-bg: #e8f5e9;
+  --page-bg: #eef6f0;
   --card-white: #ffffff;
   --accent-coral: #e76f51;
+  --academic-gold: #d4a017;
+  --academic-navy: #0d2818;
 }
 
 @theme inline {
@@ -36,6 +38,8 @@
   --color-page-bg: var(--page-bg);
   --color-card-white: var(--card-white);
   --color-accent-coral: var(--accent-coral);
+  --color-academic-gold: var(--academic-gold);
+  --color-academic-navy: var(--academic-navy);
   --font-sans: var(--font-geist-sans);
 }
 

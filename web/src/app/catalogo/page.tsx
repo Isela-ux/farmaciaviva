@@ -1,6 +1,6 @@
 import { PlantCatalog } from "@/components/PlantCatalog";
 import { SupabaseErrorBanner } from "@/components/SupabaseErrorBanner";
-import { obtenerCatalogoPlantas, obtenerFamilias } from "@/lib/plants";
+import { contarEspecies, obtenerCatalogoPlantas, obtenerFamilias } from "@/lib/plants";
 
 export const metadata = {
   title: "Catálogo",
@@ -9,12 +9,14 @@ export const metadata = {
 export default async function CatalogoPage() {
   let plantas: Awaited<ReturnType<typeof obtenerCatalogoPlantas>> = [];
   let familias: Awaited<ReturnType<typeof obtenerFamilias>> = [];
+  let totalEspecies = 0;
   let error: unknown = null;
 
   try {
-    [plantas, familias] = await Promise.all([
+    [plantas, familias, totalEspecies] = await Promise.all([
       obtenerCatalogoPlantas(),
       obtenerFamilias(),
+      contarEspecies(),
     ]);
   } catch (e) {
     error = e;
@@ -25,14 +27,16 @@ export default async function CatalogoPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-forest">Catálogo de plantas</h1>
         <p className="mt-1 text-earth-soft">
-          Explora plantas medicinales por nombre, familia o región de uso.
+          {totalEspecies > 0
+            ? `${totalEspecies} especies medicinales con búsqueda, filtros por familia y región.`
+            : "Explora plantas medicinales por nombre, familia o región de uso."}
         </p>
       </div>
 
       {error ? (
         <SupabaseErrorBanner error={error} />
       ) : (
-        <PlantCatalog plantas={plantas} familias={familias} />
+        <PlantCatalog plantas={plantas} familias={familias} totalEspecies={totalEspecies} />
       )}
     </div>
   );

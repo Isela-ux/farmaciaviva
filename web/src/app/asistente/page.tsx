@@ -1,14 +1,67 @@
 import { ChatAssistant } from "@/components/ChatAssistant";
 
+import { obtenerPlantasPorIds } from "@/lib/plants";
+
+
+
 export const metadata = {
-  title: "Asistente",
-  description: "Consultas asistidas sobre plantas medicinales con RAG.",
+
+  title: "Médico Virtual",
+
+  description: "Consultas sobre plantas medicinales con información del catálogo de Farmacia Viva.",
+
 };
 
-export default function AsistentePage() {
+
+
+export default async function MedicoVirtualPage({
+
+  searchParams,
+
+}: {
+
+  searchParams: Promise<{ planta?: string; nombre?: string }>;
+
+}) {
+
+  const { planta, nombre } = await searchParams;
+
+  const plantaId = planta ? Number(planta) : undefined;
+
+  const idValido = plantaId != null && Number.isFinite(plantaId) ? plantaId : undefined;
+
+
+
+  let plantaInicial = null;
+
+  if (idValido) {
+
+    const plantas = await obtenerPlantasPorIds([idValido]);
+
+    plantaInicial = plantas[0] ?? null;
+
+  }
+
+
+
   return (
+
     <div className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
-      <ChatAssistant />
+
+      <ChatAssistant
+
+        plantaId={idValido}
+
+        nombrePlanta={nombre?.trim() || plantaInicial?.nombreComun}
+
+        plantaInicial={plantaInicial}
+
+      />
+
     </div>
+
   );
+
 }
+
+

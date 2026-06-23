@@ -40,14 +40,14 @@ export function PlantDetailView({
           )}
         </div>
         <Link
-          href={`/asistente?planta=${especie.id_especie}`}
+          href={`/asistente?planta=${especie.id_especie}&nombre=${encodeURIComponent(titulo)}`}
           className="inline-flex items-center justify-center rounded-full bg-sun-gold px-4 py-2 text-sm font-medium text-forest transition hover:bg-sun-amber"
         >
-          Preguntar al asistente
+          Consultar al Médico Virtual
         </Link>
       </div>
 
-      {imagenes.length > 0 && (
+      {imagenes.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
           {imagenes.slice(0, 3).map((img) => (
             <div
@@ -64,6 +64,10 @@ export function PlantDetailView({
               />
             </div>
           ))}
+        </div>
+      ) : (
+        <div className="flex aspect-[21/9] items-center justify-center rounded-2xl border border-dashed border-forest/15 bg-mint-light/50 text-5xl">
+          🌱
         </div>
       )}
 

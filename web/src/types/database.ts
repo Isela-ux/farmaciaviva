@@ -154,6 +154,15 @@ export interface PlantaCatalogo {
   imagenUrl: string | null;
   nombreCientifico: string | null;
   idFamilia: number | null;
+  nombreFamilia?: string | null;
+}
+
+/** Resumen de planta para el Médico Virtual (con imagen). */
+export interface PlantaMedicoVirtual {
+  idEspecie: number;
+  nombreComun: string;
+  nombreCientifico: string | null;
+  imagenUrl: string | null;
 }
 
 export interface FichaPlanta {

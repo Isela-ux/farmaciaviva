@@ -6,7 +6,7 @@ Plataforma web del proyecto VIC 2026: catálogo de plantas medicinales, fichas c
 
 - **Frontend:** Next.js 16 + React + Tailwind CSS
 - **Backend:** Supabase (PostgreSQL + pgvector)
-- **IA:** Vercel AI SDK + Google Gemini
+- **IA:** Vercel AI SDK + DeepSeek (chat) + pgvector (embeddings)
 - **Despliegue:** Vercel
 
 ## Inicio rápido
@@ -21,7 +21,8 @@ Completa con las mismas credenciales que usa la app Android (`local.properties`)
 
 - `NEXT_PUBLIC_SUPABASE_URL`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `GOOGLE_GENERATIVE_AI_API_KEY` — [Google AI Studio](https://aistudio.google.com/apikey)
+- `DEEPSEEK_API_KEY` — [DeepSeek Platform](https://platform.deepseek.com)
+- `GOOGLE_GENERATIVE_AI_API_KEY` — opcional, solo para embeddings semánticos (768 dims)
 - `SUPABASE_SERVICE_ROLE_KEY` — solo para el script de embeddings
 
 ### 2. Migración pgvector

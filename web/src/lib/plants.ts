@@ -17,6 +17,7 @@ import type {
   ImagenEspecie,
   NombreComun,
   PlantaCatalogo,
+  PlantaMedicoVirtual,
   Propiedad,
   UbicacionGeografica,
   UsoPlanta,
@@ -104,14 +105,19 @@ export async function obtenerCatalogoPlantas(): Promise<PlantaCatalogo[]> {
     cantidadNombres.set(n.id_especie, (cantidadNombres.get(n.id_especie) ?? 0) + 1);
   }
 
+  const familias = await obtenerFamilias();
+  const familiaPorId = new Map(familias.map((f) => [f.id_familia, f.nombre_familia]));
+
   return nombres
     .map((nombreComun) => {
       const especie = especiePorId.get(nombreComun.id_especie);
+      const idFamilia = familiaPorEspecie.get(nombreComun.id_especie) ?? null;
       return {
         nombreComun,
         imagenUrl: urlImagenParaLista(nombreComun, imagenes, cantidadNombres),
         nombreCientifico: especie ? etiquetaEspecie(especie) : null,
-        idFamilia: familiaPorEspecie.get(nombreComun.id_especie) ?? null,
+        idFamilia,
+        nombreFamilia: idFamilia ? familiaPorId.get(idFamilia) ?? null : null,
       };
     })
     .sort((a, b) => a.nombreComun.nombre_comun.localeCompare(b.nombreComun.nombre_comun, "es"));
@@ -275,6 +281,93 @@ export async function buscarPlantasPorTexto(termino: string, limite = 8): Promis
   return catalogo.filter(coincide).slice(0, limite);
 }
 
+const SINONIMOS_MEDICINALES: Record<string, string[]> = {
+  digest: ["digest", "estomago", "intestinal", "gastric", "flatul", "colico"],
+  inflam: ["inflam", "dolor", "reuma", "artri"],
+  respir: ["respir", "tos", "pulmon", "bronqu"],
+  piel: ["piel", "dermat", "herida", "quemad"],
+  nerv: ["nerv", "ansied", "insomn", "estres"],
+  febr: ["febr", "fiebre", "grip"],
+};
+
+function expandirTerminosMedicinales(terminos: string[]): string[] {
+  const out = new Set(terminos);
+  for (const t of terminos) {
+    for (const [clave, variantes] of Object.entries(SINONIMOS_MEDICINALES)) {
+      if (t.includes(clave) || variantes.some((v) => t.includes(v))) {
+        out.add(clave);
+        variantes.forEach((v) => out.add(v));
+      }
+    }
+  }
+  return [...out];
+}
+
+/** Búsqueda por nombre + usos medicinales (sin depender solo de embeddings). */
+export async function buscarPlantasPorContenidoMedicinal(
+  termino: string,
+  limite = 8
+): Promise<PlantaCatalogo[]> {
+  const porNombre = await buscarPlantasPorTexto(termino, limite);
+  if (porNombre.length >= limite) return porNombre;
+
+  const terminos = expandirTerminosMedicinales(extraerTerminosBusqueda(termino));
+  if (terminos.length === 0) return porNombre;
+
+  const supabase = await createClient();
+  const ids = new Set(porNombre.map((p) => p.nombreComun.id_especie));
+  const idsExtra: number[] = [];
+
+  for (const t of terminos.slice(0, 6)) {
+    const { data: usos } = await supabase
+      .from("uso_planta")
+      .select("id_especie")
+      .ilike("descripcion_uso", `%${t}%`)
+      .limit(limite * 3);
+
+    for (const row of usos ?? []) {
+      if (ids.has(row.id_especie)) continue;
+      ids.add(row.id_especie);
+      idsExtra.push(row.id_especie);
+      if (porNombre.length + idsExtra.length >= limite) break;
+    }
+
+    if (porNombre.length + idsExtra.length >= limite) break;
+
+    const { data: props } = await supabase
+      .from("propiedad")
+      .select("id_propiedad, nombre_propiedad")
+      .ilike("nombre_propiedad", `%${t}%`)
+      .limit(10);
+
+    if (props?.length) {
+      const idsProp = props.map((p) => p.id_propiedad);
+      const { data: ep } = await supabase
+        .from("especie_propiedad")
+        .select("id_especie")
+        .in("id_propiedad", idsProp)
+        .limit(limite * 3);
+
+      for (const row of ep ?? []) {
+        if (ids.has(row.id_especie)) continue;
+        ids.add(row.id_especie);
+        idsExtra.push(row.id_especie);
+        if (porNombre.length + idsExtra.length >= limite) break;
+      }
+    }
+  }
+
+  if (idsExtra.length === 0) return porNombre;
+
+  const catalogo = await obtenerCatalogoPlantas();
+  const mapa = new Map(catalogo.map((p) => [p.nombreComun.id_especie, p]));
+  const extras = idsExtra
+    .map((id) => mapa.get(id))
+    .filter((p): p is PlantaCatalogo => Boolean(p));
+
+  return [...porNombre, ...extras].slice(0, limite);
+}
+
 /** Normaliza texto para comparar nombres de plantas. */
 export function normalizarTextoBusqueda(s: string): string {
   return s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
@@ -331,4 +424,64 @@ export function esConsultaDeSeguimiento(consulta: string): boolean {
     /^(y\s+)?(cuales|cuáles|que|qué|cual|cuál|dime|cuéntame|cuentame|hablame|háblame)\b/.test(q) ||
     /\b(sus|su|esta|este|esa|ese|ello|alli|allí|ahi|ahí)\b/.test(q)
   );
+}
+
+/**
+ * Plantas para tarjetas del Médico Virtual.
+ * Más estricto que buscarContextoRAG: solo nombres explícitos o coincidencia directa,
+ * sin búsqueda vectorial ni medicinal amplia (evita imágenes irrelevantes).
+ */
+export async function buscarPlantasParaTarjetas(
+  consulta: string,
+  mensajes: { role: string; content: string }[] = []
+): Promise<PlantaMedicoVirtual[]> {
+  const consultaActual = consulta.trim();
+  if (!consultaActual) return [];
+
+  const textoConversacion = mensajes.map((m) => m.content).join("\n");
+  const mencionadas = await buscarPlantasMencionadasEnTexto(textoConversacion, 3);
+
+  if (mencionadas.length > 0) {
+    return obtenerPlantasPorIds(mencionadas.map((p) => p.nombreComun.id_especie));
+  }
+
+  if (!esConsultaDeSeguimiento(consultaActual)) {
+    const porTexto = await buscarPlantasPorTexto(consultaActual, 2);
+    if (porTexto.length > 0) {
+      return obtenerPlantasPorIds(
+        porTexto.slice(0, 2).map((p) => p.nombreComun.id_especie)
+      );
+    }
+  }
+
+  return [];
+}
+
+/** Resumen con imagen para tarjetas del Médico Virtual. */
+export async function obtenerPlantasPorIds(
+  ids: number[]
+): Promise<PlantaMedicoVirtual[]> {
+  const unicos = [...new Set(ids.filter((id) => Number.isFinite(id)))];
+  if (!unicos.length) return [];
+
+  const catalogo = await obtenerCatalogoPlantas();
+  const porEspecie = new Map<number, PlantaCatalogo>();
+  for (const p of catalogo) {
+    if (!porEspecie.has(p.nombreComun.id_especie)) {
+      porEspecie.set(p.nombreComun.id_especie, p);
+    }
+  }
+
+  return unicos
+    .map((idEspecie) => {
+      const p = porEspecie.get(idEspecie);
+      if (!p) return null;
+      return {
+        idEspecie,
+        nombreComun: p.nombreComun.nombre_comun,
+        nombreCientifico: p.nombreCientifico,
+        imagenUrl: p.imagenUrl,
+      };
+    })
+    .filter((p): p is PlantaMedicoVirtual => p !== null);
 }

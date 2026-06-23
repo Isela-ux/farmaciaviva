@@ -1,5 +1,6 @@
 import { streamText, type UIMessage } from "ai";
 import { buscarContextoRAG, construirPromptSistema, modeloChat } from "@/lib/rag";
+import { tieneClaveDeepSeek } from "@/lib/ai-config";
 
 export const maxDuration = 30;
 
@@ -18,12 +19,13 @@ function mensajeErrorAmigable(error: unknown): string {
     msg.includes("quota") ||
     msg.includes("429") ||
     msg.includes("RESOURCE_EXHAUSTED") ||
-    msg.includes("Cuota")
+    msg.includes("Cuota") ||
+    msg.includes("insufficient")
   ) {
-    return "Cuota de Gemini agotada. Espera 1 minuto e intenta de nuevo.";
+    return "Cuota de DeepSeek agotada. Espera 1 minuto e intenta de nuevo.";
   }
-  if (msg.includes("API key") || msg.includes("API_KEY")) {
-    return "Configura GOOGLE_GENERATIVE_AI_API_KEY en las variables de entorno.";
+  if (msg.includes("API key") || msg.includes("API_KEY") || msg.includes("401")) {
+    return "Configura DEEPSEEK_API_KEY en las variables de entorno.";
   }
   return "No se pudo generar la respuesta. Intenta de nuevo en unos segundos.";
 }
@@ -38,10 +40,10 @@ export async function POST(req: Request) {
     return new Response("Consulta vacía", { status: 400 });
   }
 
-  if (!process.env.GOOGLE_GENERATIVE_AI_API_KEY) {
+  if (!tieneClaveDeepSeek()) {
     return new Response(
       JSON.stringify({
-        error: "Configura GOOGLE_GENERATIVE_AI_API_KEY en las variables de entorno.",
+        error: "Configura DEEPSEEK_API_KEY en las variables de entorno.",
       }),
       { status: 503, headers: { "Content-Type": "application/json" } }
     );
@@ -58,7 +60,7 @@ export async function POST(req: Request) {
   try {
     const result = streamText({
       model: modeloChat(),
-      maxRetries: 1,
+      maxRetries: 0,
       system,
       messages: mensajesChat.map((m) => ({
         role: m.role as "user" | "assistant" | "system",

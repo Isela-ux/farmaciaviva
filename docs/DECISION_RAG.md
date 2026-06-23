@@ -13,26 +13,40 @@
 | LlamaIndex | Bueno para indexación documental | Orientado a Python/Node con más setup; exceso para catálogo relacional | Media |
 | Solo keyword search | Sin coste de API | No responde preguntas semánticas (“plantas para el estómago”) | ✅ Como fallback |
 
-## Decisión
+## Decisión (jun 2026)
 
-**Stack seleccionado: Vercel AI SDK + Google Gemini + pgvector en Supabase**
+**Stack seleccionado: Vercel AI SDK + DeepSeek (chat) + pgvector en Supabase**
 
-### Justificación
+### Evolución respecto a Semana 1
 
-1. **Alineación con el stack base:** Next.js en Vercel, Supabase como backend, recursos gratuitos.
-2. **Gemini (`gemini-embedding-001` + `gemini-2.5-flash`):** API gratuita; modelos verificados en el proyecto (jun 2026).
-3. **pgvector en Supabase:** Los datos ya viven en PostgreSQL; no hace falta un vector store externo.
-4. **Simplicidad:** Menos abstracciones que LangChain/LlamaIndex para un catálogo de ~500 especies con chunks estructurados.
-5. **Fallback funcional:** Si los embeddings no están listos, búsqueda por texto en `nombre_comun` mantiene el asistente operativo.
+| Capa | Semana 1 | Semanas 3–4 |
+|------|----------|-------------|
+| Chat | Google Gemini | **DeepSeek** (`deepseek-chat`) |
+| Embeddings indexados | Gemini 768 dims | Sin cambio (857 chunks en BD) |
+| Recuperación | pgvector + texto | pgvector + usos/propiedades + texto |
 
-## Arquitectura
+### Justificación del cambio a DeepSeek
+
+1. **Coste y cuota:** menos interrupciones por límites gratuitos en chat.
+2. **Misma arquitectura RAG:** solo cambia el modelo de generación.
+3. **Embeddings:** DeepSeek no expone API de embeddings; se conservan los vectores ya indexados y la búsqueda ampliada por usos/propiedades.
+
+### Justificación original (Semana 1)
+
+1. **Alineación con el stack base:** Next.js en Vercel, Supabase como backend.
+2. **pgvector en Supabase:** Los datos ya viven en PostgreSQL; no hace falta un vector store externo.
+3. **Simplicidad:** Menos abstracciones que LangChain/LlamaIndex.
+4. **Fallback funcional:** Búsqueda por texto y usos medicinales mantiene el asistente operativo.
+
+## Arquitectura (actual)
 
 ```
 Usuario → Next.js (asistente) → API /api/chat
                                     ↓
-                          1. embed(consulta) — Gemini
-                          2. RPC match_plant_embeddings — Supabase/pgvector
-                          3. streamText(contexto + Gemini)
+                          1. Recuperación híbrida:
+                             - nombre / usos / propiedades (SQL)
+                             - pgvector (opcional, embedding consulta)
+                          2. streamText(contexto + DeepSeek)
 ```
 
 ## Componentes implementados
@@ -50,15 +64,17 @@ Usuario → Next.js (asistente) → API /api/chat
 
 Ver `web/.env.local.example`.
 
-## Estado de implementación (15 jun 2026)
+## Estado de implementación (jun 2026)
 
 | Componente | Estado |
 |------------|--------|
 | Migración pgvector | ✅ Ejecutada |
 | Tabla `plant_embeddings` | ✅ Creada |
-| Embeddings indexados | ✅ 857 chunks (catálogo completo) |
-| Asistente `/asistente` | ✅ Funcional con RAG híbrido |
-| Deploy Vercel | 🔲 Pendiente |
+| Embeddings indexados | ✅ 857 chunks (**284 especies**, catálogo completo) |
+| Asistente `/asistente` | ✅ RAG híbrido + DeepSeek |
+| Catálogo S3 | ✅ Búsqueda, filtros, paginación |
+| Fichas S4 | ✅ Completas |
+| Deploy Vercel | ✅ (configurar `DEEPSEEK_API_KEY`) |
 
 ## Próximos pasos
 

@@ -3,7 +3,8 @@
  *
  * Uso:
  *   cd web
- *   cp .env.local.example .env.local   # con SUPABASE_SERVICE_ROLE_KEY y GOOGLE_GENERATIVE_AI_API_KEY
+ * Requiere GOOGLE_GENERATIVE_AI_API_KEY (embeddings 768 dims para pgvector).
+ * El chat del asistente usa DeepSeek (DEEPSEEK_API_KEY) — ver web/src/lib/ai-config.ts
  *   node ../supabase/scripts/generate-embeddings.mjs
  *
  * Opciones:

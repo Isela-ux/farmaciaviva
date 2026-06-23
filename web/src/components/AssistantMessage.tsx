@@ -30,7 +30,7 @@ function BloqueLista({ items }: { items: string[] }) {
     <ul className="mt-2 space-y-1.5">
       {items.map((item, i) => (
         <li key={i} className="flex gap-2 text-[0.9rem] leading-relaxed text-earth">
-          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-hero-green" />
+          <span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-sun-gold" />
           <span>{renderInline(item)}</span>
         </li>
       ))}
@@ -62,10 +62,10 @@ function TarjetaPlanta({ titulo, cuerpo }: { titulo: string; cuerpo: string }) {
   if (listaActual.length) bloques.push({ tipo: "lista", contenido: listaActual });
 
   return (
-    <article className="overflow-hidden rounded-xl border border-forest/10 bg-white shadow-sm">
-      <header className="border-b border-forest/8 bg-gradient-to-r from-mint-light to-white px-4 py-3">
+    <article className="overflow-hidden rounded-xl border border-forest/10 bg-white shadow-sm ring-1 ring-sun-gold/10">
+      <header className="border-b border-sun-gold/20 bg-gradient-to-r from-forest/5 via-cream/50 to-mint-light/30 px-4 py-3">
         <h3 className="flex items-center gap-2 font-semibold text-forest">
-          <span aria-hidden>🌿</span>
+          <span aria-hidden className="text-sun-gold">🌿</span>
           {renderInline(titulo.replace(/^#+\s*/, ""))}
         </h3>
       </header>

@@ -1,8 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { PlantCard } from "@/components/PlantCard";
 import type { Familia, PlantaCatalogo } from "@/types/database";
+
+const POR_PAGINA = 24;
 
 function normalizar(texto: string) {
   return texto.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
@@ -11,17 +13,30 @@ function normalizar(texto: string) {
 export function PlantCatalog({
   plantas,
   familias,
+  totalEspecies,
 }: {
   plantas: PlantaCatalogo[];
   familias: Familia[];
+  totalEspecies?: number;
 }) {
   const [busqueda, setBusqueda] = useState("");
   const [familiaId, setFamiliaId] = useState<number | "">("");
+  const [region, setRegion] = useState("");
+  const [pagina, setPagina] = useState(1);
 
   const familiasPorId = useMemo(
     () => new Map(familias.map((f) => [f.id_familia, f.nombre_familia])),
     [familias]
   );
+
+  const regiones = useMemo(() => {
+    const set = new Set<string>();
+    for (const p of plantas) {
+      const r = p.nombreComun.region_uso?.trim();
+      if (r) set.add(r);
+    }
+    return [...set].sort((a, b) => a.localeCompare(b, "es"));
+  }, [plantas]);
 
   const filtradas = useMemo(() => {
     const q = normalizar(busqueda.trim());
@@ -29,29 +44,69 @@ export function PlantCatalog({
       const coincideTexto =
         !q ||
         normalizar(p.nombreComun.nombre_comun).includes(q) ||
-        (p.nombreCientifico && normalizar(p.nombreCientifico).includes(q));
-      const coincideFamilia =
-        familiaId === "" || p.idFamilia === familiaId;
-      return coincideTexto && coincideFamilia;
+        (p.nombreCientifico && normalizar(p.nombreCientifico).includes(q)) ||
+        normalizar(p.nombreComun.region_uso ?? "").includes(q);
+      const coincideFamilia = familiaId === "" || p.idFamilia === familiaId;
+      const coincideRegion = !region || p.nombreComun.region_uso === region;
+      return coincideTexto && coincideFamilia && coincideRegion;
     });
-  }, [plantas, busqueda, familiaId]);
+  }, [plantas, busqueda, familiaId, region]);
+
+  const totalPaginas = Math.max(1, Math.ceil(filtradas.length / POR_PAGINA));
+  const paginaActual = Math.min(pagina, totalPaginas);
+  const visibles = filtradas.slice(
+    (paginaActual - 1) * POR_PAGINA,
+    paginaActual * POR_PAGINA
+  );
+
+  const hayFiltros = busqueda.trim() !== "" || familiaId !== "" || region !== "";
+
+  useEffect(() => {
+    setPagina(1);
+  }, [busqueda, familiaId, region]);
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-3 sm:flex-row">
+      <div className="rounded-2xl border border-forest/10 bg-card-white p-4 shadow-sm">
+        <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-sm text-earth-soft">
+          <span>
+            <strong className="text-forest">{filtradas.length}</strong> resultados
+          </span>
+          {totalEspecies != null && (
+            <span>
+              de <strong className="text-forest">{totalEspecies}</strong> especies indexadas
+            </span>
+          )}
+          {hayFiltros && (
+            <button
+              type="button"
+              onClick={() => {
+                setBusqueda("");
+                setFamiliaId("");
+                setRegion("");
+              }}
+              className="text-hero-green hover:underline"
+            >
+              Limpiar filtros
+            </button>
+          )}
+        </div>
+      </div>
+
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <input
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre común o científico…"
-          className="flex-1 rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2"
+          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2 sm:col-span-2 lg:col-span-1"
         />
         <select
           value={familiaId}
           onChange={(e) =>
             setFamiliaId(e.target.value === "" ? "" : Number(e.target.value))
           }
-          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2 sm:min-w-[200px]"
+          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2"
         >
           <option value="">Todas las familias</option>
           {familias.map((f) => (
@@ -60,28 +115,59 @@ export function PlantCatalog({
             </option>
           ))}
         </select>
+        <select
+          value={region}
+          onChange={(e) => setRegion(e.target.value)}
+          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2"
+        >
+          <option value="">Todas las regiones</option>
+          {regiones.map((r) => (
+            <option key={r} value={r}>
+              {r}
+            </option>
+          ))}
+        </select>
       </div>
-
-      <p className="text-sm text-earth-soft">
-        {filtradas.length} planta{filtradas.length !== 1 ? "s" : ""}
-        {familiaId !== "" && familiasPorId.get(familiaId as number)
-          ? ` en ${familiasPorId.get(familiaId as number)}`
-          : ""}
-      </p>
 
       {filtradas.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-forest/20 bg-card-white p-10 text-center text-earth-soft">
           No se encontraron plantas con esos filtros.
         </div>
       ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {filtradas.map((planta) => (
-            <PlantCard
-              key={planta.nombreComun.id_nombre_comun}
-              planta={planta}
-            />
-          ))}
-        </div>
+        <>
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {visibles.map((planta) => (
+              <PlantCard
+                key={planta.nombreComun.id_nombre_comun}
+                planta={planta}
+              />
+            ))}
+          </div>
+
+          {totalPaginas > 1 && (
+            <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+              <button
+                type="button"
+                disabled={paginaActual <= 1}
+                onClick={() => setPagina((p) => Math.max(1, p - 1))}
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-sm text-forest disabled:opacity-40"
+              >
+                ← Anterior
+              </button>
+              <span className="text-sm text-earth-soft">
+                Página {paginaActual} de {totalPaginas}
+              </span>
+              <button
+                type="button"
+                disabled={paginaActual >= totalPaginas}
+                onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-sm text-forest disabled:opacity-40"
+              >
+                Siguiente →
+              </button>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

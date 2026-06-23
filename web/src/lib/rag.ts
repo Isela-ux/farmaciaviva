@@ -1,8 +1,10 @@
-import { embed } from "ai";
-import { google } from "@ai-sdk/google";
+import { deepseek } from "@ai-sdk/deepseek";
 import { createClient } from "@/lib/supabase/server";
+import { CHAT_MODEL, tieneClaveEmbeddings } from "@/lib/ai-config";
+import { generarEmbedding } from "@/lib/embeddings";
 import {
   buscarPlantasMencionadasEnTexto,
+  buscarPlantasPorContenidoMedicinal,
   buscarPlantasPorTexto,
   esConsultaDeSeguimiento,
   extraerTerminosBusqueda,
@@ -11,22 +13,9 @@ import {
 import { etiquetaUbicacion } from "@/lib/images";
 import type { FichaPlanta, PlantaCatalogo, PlantEmbedding } from "@/types/database";
 
-const EMBEDDING_MODEL = "gemini-embedding-001";
-const CHAT_MODEL = "gemini-2.5-flash";
 const LIMITE_CONTEXTO = 3;
 
 export type MensajeConversacion = { role: string; content: string };
-
-export async function generarEmbedding(texto: string): Promise<number[]> {
-  const { embedding } = await embed({
-    model: google.textEmbeddingModel(EMBEDDING_MODEL),
-    value: texto,
-    providerOptions: {
-      google: { outputDimensionality: 768 },
-    },
-  });
-  return embedding;
-}
 
 function textoContextoDesdeFicha(ficha: FichaPlanta): string {
   const lineas: string[] = [];
@@ -141,6 +130,8 @@ async function buscarPorVector(
   consulta: string,
   limite: number
 ): Promise<PlantEmbedding[]> {
+  if (!tieneClaveEmbeddings()) return [];
+
   try {
     const supabase = await createClient();
     const embedding = await generarEmbedding(consulta);
@@ -199,7 +190,7 @@ export async function buscarContextoRAG(
 
   const [plantasMencionadas, plantasPorBusqueda] = await Promise.all([
     buscarPlantasMencionadasEnTexto(textoConversacion, limite),
-    buscarPlantasPorTexto(consultaExpandida, limite),
+    buscarPlantasPorContenidoMedicinal(consultaExpandida, limite),
   ]);
 
   const plantas = unificarPlantas(plantasMencionadas, plantasPorBusqueda);
@@ -222,7 +213,7 @@ export function construirPromptSistema(contexto: PlantEmbedding[]): string {
     })
     .join("\n\n");
 
-  return `Eres el asistente de Farmacia Viva, un recurso educativo sobre plantas medicinales de México.
+  return `Eres el Médico Virtual de Farmacia Viva, un recurso educativo sobre plantas medicinales de México.
 
 REGLAS:
 - Responde SOLO con información del CONTEXTO RECUPERADO y el historial.
@@ -242,7 +233,7 @@ ${fragmentos || "(Sin coincidencias en el catálogo para esta consulta)"}`;
 }
 
 export function modeloChat() {
-  return google(CHAT_MODEL);
+  return deepseek(CHAT_MODEL);
 }
 
-export { CHAT_MODEL, EMBEDDING_MODEL };
+export { CHAT_MODEL };
