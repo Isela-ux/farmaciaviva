@@ -179,9 +179,9 @@ export function ChatAssistant({
 
 
   return (
-    <div className="flex h-[calc(100vh-12rem)] min-h-[480px] flex-col overflow-hidden rounded-2xl border-2 border-forest/15 bg-card-white shadow-lg ring-1 ring-sun-gold/10">
-      <div className="relative border-b border-sun-gold/30 bg-gradient-to-br from-academic-navy via-forest to-leaf-bright px-5 py-5 text-white">
-        <div className="flex items-start gap-3">
+    <div className="flex min-h-[calc(100dvh-3.25rem)] flex-1 flex-col overflow-hidden bg-card-white">
+      <div className="relative shrink-0 border-b border-sun-gold/30 bg-gradient-to-br from-academic-navy via-forest to-leaf-bright px-6 py-5 text-white lg:px-10">
+        <div className="mx-auto flex max-w-6xl items-start gap-3">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sun-gold/20 text-xl ring-2 ring-sun-gold/40">
             🩺
           </span>
@@ -189,16 +189,19 @@ export function ChatAssistant({
             <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sun-gold">
               Farmacia Viva · VIC 2026
             </p>
-            <h1 className="mt-0.5 text-xl font-semibold tracking-tight">Médico Virtual</h1>
+            <h1 className="mt-0.5 text-xl font-semibold tracking-tight sm:text-2xl">
+              Médico Virtual
+            </h1>
             <p className="mt-1 text-sm text-mint/90">
               Consultas sobre plantas medicinales con información verificada del catálogo.
             </p>
           </div>
         </div>
-        <div className="mt-4 h-1 w-20 rounded-full bg-gradient-to-r from-sun-gold to-sun-amber" />
+        <div className="mx-auto mt-4 h-1 w-20 max-w-6xl rounded-full bg-gradient-to-r from-sun-gold to-sun-amber" />
       </div>
 
-      <div className="flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-botanical to-page-bg/40 px-5 py-4">
+      <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden px-4 sm:px-6 lg:px-10">
+        <div className="flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-botanical to-page-bg/40 py-4">
 
         {messages.length === 0 && (
 
@@ -288,11 +291,11 @@ export function ChatAssistant({
               className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
             >
               {m.role === "user" ? (
-                <div className="max-w-[85%] rounded-2xl rounded-br-md border border-leaf-bright/30 bg-gradient-to-br from-forest to-leaf-bright px-4 py-2.5 text-sm leading-relaxed text-white shadow-md">
+                <div className="max-w-[75%] rounded-2xl rounded-br-md border border-leaf-bright/30 bg-gradient-to-br from-forest to-leaf-bright px-4 py-2.5 text-sm leading-relaxed text-white shadow-md lg:max-w-[60%]">
                   <p className="whitespace-pre-wrap">{textoMensaje(m)}</p>
                 </div>
               ) : (
-                <div className="w-full max-w-[92%] space-y-3 rounded-2xl rounded-bl-md border border-forest/10 border-l-4 border-l-sun-gold bg-white p-4 text-sm text-forest shadow-sm sm:max-w-[88%]">
+                <div className="w-full max-w-4xl space-y-3 rounded-2xl rounded-bl-md border border-forest/10 border-l-4 border-l-sun-gold bg-white p-4 text-sm text-forest shadow-sm">
                   {plantas.length > 0 && (
                     <div className="flex justify-center">
                       <MedicoVirtualPlantas plantas={plantas} />
@@ -357,41 +360,38 @@ export function ChatAssistant({
         )}
 
         <div ref={finRef} />
+        </div>
 
-      </div>
-
-
-
-      <form
-        onSubmit={(e) => {
-          e.preventDefault();
-          enviar(input);
-        }}
-        className="flex gap-2 border-t-2 border-sun-gold/20 bg-white p-4"
-      >
-        <input
-          value={input}
-          onChange={(e) => setInput(e.target.value)}
-          placeholder="Escribe tu consulta sobre plantas medicinales…"
-          disabled={cargando}
-          className="flex-1 rounded-xl border-2 border-forest/15 bg-botanical px-4 py-2.5 text-sm outline-none transition focus:border-sun-gold/50 focus:ring-2 focus:ring-sun-gold/20 disabled:opacity-60"
-        />
-        <button
-          type="submit"
-          disabled={cargando || !input.trim()}
-          className="rounded-xl bg-gradient-to-r from-forest to-leaf-bright px-5 py-2.5 text-sm font-semibold text-white shadow-md transition hover:from-leaf-bright hover:to-hero-green disabled:opacity-50"
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            enviar(input);
+          }}
+          className="flex shrink-0 gap-2 border-t-2 border-sun-gold/20 bg-white py-4"
         >
-          Enviar
-        </button>
-      </form>
+          <input
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
+            placeholder="Escribe tu consulta sobre plantas medicinales…"
+            disabled={cargando}
+            className="flex-1 rounded-xl border-2 border-forest/15 bg-botanical px-4 py-3 text-sm outline-none transition focus:border-sun-gold/50 focus:ring-2 focus:ring-sun-gold/20 disabled:opacity-60"
+          />
+          <button
+            type="submit"
+            disabled={cargando || !input.trim()}
+            className="rounded-xl bg-gradient-to-r from-forest to-leaf-bright px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:from-leaf-bright hover:to-hero-green disabled:opacity-50"
+          >
+            Enviar
+          </button>
+        </form>
 
-      <p className="border-t border-forest/8 bg-cream/50 px-4 py-2.5 text-center text-xs text-earth-soft">
-        Información educativa — no sustituye consejo médico profesional.{" "}
-        <Link href="/catalogo" className="font-medium text-leaf-bright underline hover:text-forest">
-          Ver catálogo
-        </Link>
-      </p>
-
+        <p className="shrink-0 border-t border-forest/8 bg-cream/50 py-2.5 text-center text-xs text-earth-soft">
+          Información educativa — no sustituye consejo médico profesional.{" "}
+          <Link href="/catalogo" className="font-medium text-leaf-bright underline hover:text-forest">
+            Ver catálogo
+          </Link>
+        </p>
+      </div>
     </div>
 
   );

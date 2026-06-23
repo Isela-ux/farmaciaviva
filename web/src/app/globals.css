@@ -48,3 +48,11 @@ body {
   color: var(--earth);
   font-family: var(--font-sans), system-ui, sans-serif;
 }
+
+body:has(.medico-virtual-full) footer {
+  display: none;
+}
+
+body:has(.medico-virtual-full) main {
+  min-height: calc(100dvh - 3.25rem);
+}

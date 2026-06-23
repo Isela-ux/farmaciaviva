@@ -27,7 +27,7 @@ export default function RootLayout({
     <html lang="es" className={`${geistSans.variable} h-full antialiased`}>
       <body className="flex min-h-full flex-col">
         <Header />
-        <main className="flex-1">{children}</main>
+        <main className="flex min-h-0 flex-1 flex-col">{children}</main>
         <footer className="border-t border-forest/10 bg-botanical py-6 text-center text-xs text-earth-soft">
           Farmacia Viva · VIC 2026 · Recurso educativo sobre plantas medicinales
         </footer>
