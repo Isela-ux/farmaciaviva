@@ -367,6 +367,11 @@ export async function contarEspecies(): Promise<number> {
   return count ?? 0;
 }
 
+function coincidePalabraConTermino(palabra: string, termino: string): boolean {
+  if (palabra.length < 4 || termino.length < 4) return false;
+  return palabra.startsWith(termino) || termino.startsWith(palabra);
+}
+
 export async function buscarPlantasPorTexto(termino: string, limite = 8): Promise<PlantaCatalogo[]> {
   const catalogo = await obtenerCatalogoPlantas();
   const q = termino.trim();
@@ -387,7 +392,7 @@ export async function buscarPlantasPorTexto(termino: string, limite = 8): Promis
       (t) =>
         comun.includes(t) ||
         cientifico.includes(t) ||
-        comun.split(/\s+/).some((palabra) => palabra.startsWith(t) || t.startsWith(palabra))
+        comun.split(/\s+/).some((palabra) => coincidePalabraConTermino(palabra, t))
     );
   };
 

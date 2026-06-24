@@ -1,5 +1,5 @@
 {
-  "fecha": "2026-06-24T18:13:33.973Z",
+  "fecha": "2026-06-24T18:53:21.203Z",
   "total": 15,
   "ok": 15,
   "fallos": 0,
@@ -126,14 +126,10 @@
       "tipo": "planta_concreta",
       "estado": "OK",
       "plantasRecuperadas": [
-        "Bonxan guano redondo o yucateco",
-        "Achiote",
-        "Uvita o parra"
+        "Achiote"
       ],
       "ids": [
-        61,
-        111,
-        463
+        111
       ]
     },
     {
@@ -170,14 +166,10 @@
       "tipo": "seguimiento",
       "estado": "OK",
       "plantasRecuperadas": [
-        "Achiote",
-        "Berenjena cimarrona",
-        "Palo de sangre"
+        "Achiote"
       ],
       "ids": [
-        111,
-        423,
-        215
+        111
       ]
     },
     {

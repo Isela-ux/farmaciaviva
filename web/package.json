@@ -9,6 +9,7 @@
     "lint": "eslint",
     "embeddings": "node ../supabase/scripts/generate-embeddings.mjs",
     "embeddings:test": "node ../supabase/scripts/generate-embeddings.mjs --limit=10",
+    "embeddings:validar": "node ../supabase/scripts/validar-embeddings.mjs",
     "rag:pruebas": "node ../supabase/scripts/rag-pruebas.mjs"
   },
   "dependencies": {

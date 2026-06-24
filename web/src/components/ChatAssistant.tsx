@@ -201,7 +201,7 @@ export function ChatAssistant({
       </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden px-4 sm:px-6 lg:px-10">
-        <div className="flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-botanical to-page-bg/40 py-4">
+        <div className="flex-1 space-y-4 overflow-y-auto bg-gradient-to-b from-botanical to-page-bg/40 py-4" role="log" aria-live="polite" aria-relevant="additions" aria-label="Conversación con el Médico Virtual">
 
         {messages.length === 0 && (
 
@@ -257,7 +257,7 @@ export function ChatAssistant({
                   key={s}
                   type="button"
                   onClick={() => enviar(s)}
-                  className="rounded-lg border border-sun-gold/40 bg-white px-3 py-2 text-xs font-medium text-forest shadow-sm transition hover:border-sun-gold hover:bg-cream hover:shadow"
+                  className="rounded-lg border border-sun-gold/40 bg-white px-3 py-2 text-xs font-medium text-forest shadow-sm outline-none transition hover:border-sun-gold hover:bg-cream hover:shadow focus-visible:ring-2 focus-visible:ring-sun-gold/50"
                 >
                   {s}
                 </button>
@@ -311,7 +311,7 @@ export function ChatAssistant({
 
 
         {cargando && (
-          <div className="flex justify-start">
+          <div className="flex justify-start" role="status" aria-live="polite">
             <div className="flex items-center gap-2 rounded-2xl border border-forest/10 bg-white px-4 py-2.5 text-sm text-earth-soft shadow-sm">
               <span className="inline-flex gap-1">
                 <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sun-gold [animation-delay:0ms]" />
@@ -368,24 +368,31 @@ export function ChatAssistant({
             enviar(input);
           }}
           className="flex shrink-0 gap-2 border-t-2 border-sun-gold/20 bg-white py-4"
+          aria-label="Enviar consulta al Médico Virtual"
         >
+          <label className="sr-only" htmlFor="medico-virtual-consulta">
+            Escribe tu consulta sobre plantas medicinales
+          </label>
           <input
+            id="medico-virtual-consulta"
             value={input}
             onChange={(e) => setInput(e.target.value)}
             placeholder="Escribe tu consulta sobre plantas medicinales…"
             disabled={cargando}
-            className="flex-1 rounded-xl border-2 border-forest/15 bg-botanical px-4 py-3 text-sm outline-none transition focus:border-sun-gold/50 focus:ring-2 focus:ring-sun-gold/20 disabled:opacity-60"
+            aria-label="Escribe tu consulta sobre plantas medicinales"
+            className="flex-1 rounded-xl border-2 border-forest/15 bg-botanical px-4 py-3 text-sm outline-none transition focus-visible:border-sun-gold/50 focus-visible:ring-2 focus-visible:ring-sun-gold/20 disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={cargando || !input.trim()}
-            className="rounded-xl bg-gradient-to-r from-forest to-leaf-bright px-6 py-3 text-sm font-semibold text-white shadow-md transition hover:from-leaf-bright hover:to-hero-green disabled:opacity-50"
+            aria-label="Enviar consulta"
+            className="rounded-xl bg-gradient-to-r from-forest to-leaf-bright px-6 py-3 text-sm font-semibold text-white shadow-md outline-none transition hover:from-leaf-bright hover:to-hero-green focus-visible:ring-2 focus-visible:ring-sun-gold/50 focus-visible:ring-offset-2 disabled:opacity-50"
           >
             Enviar
           </button>
         </form>
 
-        <p className="shrink-0 border-t border-forest/8 bg-cream/50 py-2.5 text-center text-xs text-earth-soft">
+        <p className="shrink-0 border-t border-forest/8 bg-cream/50 py-2.5 text-center text-xs text-earth" role="note">
           Información educativa — no sustituye consejo médico profesional.{" "}
           <Link href="/catalogo" className="font-medium text-leaf-bright underline hover:text-forest">
             Ver catálogo

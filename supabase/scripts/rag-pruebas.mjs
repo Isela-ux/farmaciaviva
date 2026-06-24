@@ -114,6 +114,11 @@ async function obtenerCatalogo() {
   return catalogoCache;
 }
 
+function coincidePalabra(palabra, termino) {
+  if (palabra.length < 4 || termino.length < 4) return false;
+  return palabra.startsWith(termino) || termino.startsWith(palabra);
+}
+
 async function buscarPorTexto(termino, limite = 8) {
   const catalogo = await obtenerCatalogo();
   const q = termino.trim();
@@ -131,7 +136,7 @@ async function buscarPorTexto(termino, limite = 8) {
         (t) =>
           comun.includes(t) ||
           cient.includes(t) ||
-          comun.split(/\s+/).some((w) => w.startsWith(t) || t.startsWith(w))
+          comun.split(/\s+/).some((palabra) => coincidePalabra(palabra, t))
       );
     })
     .slice(0, limite);
@@ -237,6 +242,12 @@ async function buscarContextoRAG(consulta, mensajes = [], limite = 3) {
   }
 
   const textoConversacion = mensajes.map((m) => m.content).join("\n");
+
+  if (esSeguimiento(consultaActual)) {
+    const delHistorial = await buscarMencionadas(textoConversacion, limite);
+    if (delHistorial.length) return delHistorial.slice(0, limite);
+  }
+
   const consultaExpandida = esSeguimiento(consultaActual)
     ? textoConversacion
     : `${textoConversacion}\n${consultaActual}`.trim();

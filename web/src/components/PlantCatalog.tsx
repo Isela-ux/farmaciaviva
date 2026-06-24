@@ -85,7 +85,7 @@ export function PlantCatalog({
                 setFamiliaId("");
                 setRegion("");
               }}
-              className="text-hero-green hover:underline"
+              className="text-hero-green outline-none hover:underline focus-visible:ring-2 focus-visible:ring-sun-gold/50"
             >
               Limpiar filtros
             </button>
@@ -94,19 +94,29 @@ export function PlantCatalog({
       </div>
 
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <label className="sr-only" htmlFor="catalogo-busqueda">
+          Buscar plantas
+        </label>
         <input
+          id="catalogo-busqueda"
           type="search"
           value={busqueda}
           onChange={(e) => setBusqueda(e.target.value)}
           placeholder="Buscar por nombre común o científico…"
-          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2 sm:col-span-2 lg:col-span-1"
+          aria-label="Buscar por nombre común o científico"
+          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus-visible:ring-2 sm:col-span-2 lg:col-span-1"
         />
+        <label className="sr-only" htmlFor="catalogo-familia">
+          Filtrar por familia botánica
+        </label>
         <select
+          id="catalogo-familia"
           value={familiaId}
           onChange={(e) =>
             setFamiliaId(e.target.value === "" ? "" : Number(e.target.value))
           }
-          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2"
+          aria-label="Filtrar por familia botánica"
+          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus-visible:ring-2"
         >
           <option value="">Todas las familias</option>
           {familias.map((f) => (
@@ -115,10 +125,15 @@ export function PlantCatalog({
             </option>
           ))}
         </select>
+        <label className="sr-only" htmlFor="catalogo-region">
+          Filtrar por región de uso
+        </label>
         <select
+          id="catalogo-region"
           value={region}
           onChange={(e) => setRegion(e.target.value)}
-          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus:ring-2"
+          aria-label="Filtrar por región de uso"
+          className="rounded-xl border border-forest/15 bg-card-white px-4 py-2.5 text-forest outline-none ring-hero-green/30 focus-visible:ring-2"
         >
           <option value="">Todas las regiones</option>
           {regiones.map((r) => (
@@ -130,7 +145,10 @@ export function PlantCatalog({
       </div>
 
       {filtradas.length === 0 ? (
-        <div className="rounded-2xl border border-dashed border-forest/20 bg-card-white p-10 text-center text-earth-soft">
+        <div
+          className="rounded-2xl border border-dashed border-forest/20 bg-card-white p-10 text-center text-earth"
+          role="status"
+        >
           No se encontraron plantas con esos filtros.
         </div>
       ) : (
@@ -150,18 +168,20 @@ export function PlantCatalog({
                 type="button"
                 disabled={paginaActual <= 1}
                 onClick={() => setPagina((p) => Math.max(1, p - 1))}
-                className="rounded-lg border border-forest/15 px-3 py-1.5 text-sm text-forest disabled:opacity-40"
+                aria-label="Página anterior"
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-sm text-forest outline-none focus-visible:ring-2 focus-visible:ring-sun-gold/50 disabled:opacity-40"
               >
                 ← Anterior
               </button>
-              <span className="text-sm text-earth-soft">
+              <span className="text-sm text-earth" aria-live="polite">
                 Página {paginaActual} de {totalPaginas}
               </span>
               <button
                 type="button"
                 disabled={paginaActual >= totalPaginas}
                 onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
-                className="rounded-lg border border-forest/15 px-3 py-1.5 text-sm text-forest disabled:opacity-40"
+                aria-label="Página siguiente"
+                className="rounded-lg border border-forest/15 px-3 py-1.5 text-sm text-forest outline-none focus-visible:ring-2 focus-visible:ring-sun-gold/50 disabled:opacity-40"
               >
                 Siguiente →
               </button>

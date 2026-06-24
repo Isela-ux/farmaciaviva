@@ -1,6 +1,6 @@
 import { deepseek } from "@ai-sdk/deepseek";
 import { createClient } from "@/lib/supabase/server";
-import { CHAT_MODEL, tieneClaveEmbeddings } from "@/lib/ai-config";
+import { CHAT_MODEL, tieneClaveEmbeddings, RAG_VECTOR_MATCH_COUNT, RAG_VECTOR_MATCH_THRESHOLD, RAG_CONTEXTO_LIMITE } from "@/lib/ai-config";
 import { generarEmbedding } from "@/lib/embeddings";
 import {
   buscarPlantasMencionadasEnTexto,
@@ -12,7 +12,7 @@ import {
 } from "@/lib/plants";
 import type { FichaPlanta, PlantaCatalogo, PlantEmbedding } from "@/types/database";
 
-const LIMITE_CONTEXTO = 3;
+const LIMITE_CONTEXTO = RAG_CONTEXTO_LIMITE;
 
 export type MensajeConversacion = { role: string; content: string };
 
@@ -137,8 +137,8 @@ async function buscarPorVector(
     const embedding = await generarEmbedding(consulta);
     const { data, error } = await supabase.rpc("match_plant_embeddings", {
       query_embedding: embedding,
-      match_threshold: 0.45,
-      match_count: limite,
+      match_threshold: RAG_VECTOR_MATCH_THRESHOLD,
+      match_count: limite ?? RAG_VECTOR_MATCH_COUNT,
     });
     if (!error && data?.length) return data as PlantEmbedding[];
   } catch {
@@ -201,6 +201,13 @@ export async function buscarContextoRAG(
   }
 
   const textoConversacion = mensajes.map((m) => m.content).join("\n");
+
+  if (esConsultaDeSeguimiento(consultaActual)) {
+    const delHistorial = await buscarPlantasMencionadasEnTexto(textoConversacion, limite);
+    if (delHistorial.length > 0) {
+      return chunksDesdePlantas(delHistorial.slice(0, limite));
+    }
+  }
 
   const [plantasMencionadas, plantasPorBusqueda] = await Promise.all([
     buscarPlantasMencionadasEnTexto(textoConversacion, limite),

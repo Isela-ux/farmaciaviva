@@ -1,0 +1,16 @@
+{
+  "fecha": "2026-06-24T18:53:20.096Z",
+  "totalEspecies": 284,
+  "totalEmbeddings": 857,
+  "especiesConEmbedding": 284,
+  "especiesSinEmbedding": 0,
+  "embeddingsNulos": 0,
+  "dimensionesMuestra": [
+    768,
+    768,
+    768
+  ],
+  "dimensionesEsperadas": 768,
+  "especiesSinChunksMuestra": [],
+  "estado": "OK"
+}

@@ -24,7 +24,7 @@ export function PlantDetailView({
         <div>
           <Link
             href="/catalogo"
-            className="text-sm text-hero-green hover:underline"
+            className="text-sm text-hero-green outline-none hover:underline focus-visible:ring-2 focus-visible:ring-sun-gold/50 focus-visible:ring-offset-2"
           >
             ← Volver al catálogo
           </Link>
@@ -42,7 +42,7 @@ export function PlantDetailView({
         </div>
         <Link
           href={`/asistente?planta=${especie.id_especie}&nombre=${encodeURIComponent(titulo)}`}
-          className="inline-flex items-center justify-center rounded-full bg-sun-gold px-4 py-2 text-sm font-medium text-forest transition hover:bg-sun-amber"
+          className="inline-flex items-center justify-center rounded-full bg-sun-gold px-4 py-2 text-sm font-medium text-forest outline-none transition hover:bg-sun-amber focus-visible:ring-2 focus-visible:ring-forest/40 focus-visible:ring-offset-2"
         >
           Consultar al Médico Virtual
         </Link>
@@ -50,17 +50,23 @@ export function PlantDetailView({
 
       {imagenes.length > 0 ? (
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
-          {imagenes.slice(0, 3).map((img) => (
+          {imagenes.slice(0, 3).map((img, index) => (
             <div
               key={img.id_imagen}
               className="relative aspect-[4/3] overflow-hidden rounded-2xl bg-mint-light"
             >
               <Image
                 src={img.url_imagen}
-                alt={titulo}
+                alt={
+                  index === 0
+                    ? `Fotografía de ${titulo}`
+                    : `${titulo} — imagen ${index + 1}`
+                }
                 fill
                 className="object-cover"
                 sizes="(max-width: 768px) 100vw, 33vw"
+                priority={index === 0}
+                loading={index === 0 ? "eager" : "lazy"}
                 unoptimized
               />
             </div>

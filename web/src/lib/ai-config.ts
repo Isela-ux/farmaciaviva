@@ -12,6 +12,11 @@ export const DEEPSEEK_PROVIDER_OPTIONS = {
 export const EMBEDDING_MODEL = "gemini-embedding-001";
 export const EMBEDDING_DIMENSIONS = 768;
 
+/** Recuperación vectorial (pgvector) — valores usados en producción. */
+export const RAG_VECTOR_MATCH_THRESHOLD = 0.45;
+export const RAG_VECTOR_MATCH_COUNT = 3;
+export const RAG_CONTEXTO_LIMITE = 3;
+
 export function tieneClaveDeepSeek(): boolean {
   return Boolean(process.env.DEEPSEEK_API_KEY?.trim());
 }
