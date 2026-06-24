@@ -90,10 +90,10 @@ evidencia/semana4/
 
 ### Preguntas sugeridas para capturas del chat (B5–B9)
 
-1. «¿Para qué sirve la manzanilla?»  
+1. «¿Para qué sirve el achiote?»  
 2. «Plantas para problemas digestivos»  
 3. «¿Qué plantas tienen propiedades antiinflamatorias?»  
-4. (Tras la 1) «¿Y sus contraindicaciones?»  
+4. (Tras la 1) «¿Y sus contraindicaciones?» o «y sus contraindicaciones»  
 
 ---
 
@@ -105,15 +105,16 @@ evidencia/semana4/
 | Catálogo con filtros y paginación | ✅ |
 | RAG v1 + DeepSeek V4 Flash | ✅ |
 | pgvector 857 / 284 especies | ✅ |
-| Deploy Vercel | ✅ (redeploy tras fix ubicaciones recomendado) |
-| Documentos formales S4 | ✅ Este índice + entregables A y B |
-| Capturas de evidencia | ⬜ Pendiente por el equipo |
+| Deploy Vercel | ✅ Producción `fb96c7d` |
+| Documentos formales S4 | ✅ |
+| Capturas de evidencia | ⚠️ ~60 % — ver [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md) |
 
 ---
 
 ## Documentos relacionados
 
+- [`SEMANA_4_5_ENTREGABLES.md`](./SEMANA_4_5_ENTREGABLES.md)  
+- [`SEMANA_4_5_ESTADO.md`](./SEMANA_4_5_ESTADO.md)  
 - [`ALUMNO_A_ENTREGABLE_SEMANA_4.md`](./ALUMNO_A_ENTREGABLE_SEMANA_4.md)  
 - [`ALUMNO_B_ENTREGABLE_SEMANA_4.md`](./ALUMNO_B_ENTREGABLE_SEMANA_4.md)  
-- [`SEMANA_3_4_ESTADO.md`](./SEMANA_3_4_ESTADO.md)  
-- [`SEMANA_3_4_ENTREGABLES.md`](./SEMANA_3_4_ENTREGABLES.md)
+- [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md)

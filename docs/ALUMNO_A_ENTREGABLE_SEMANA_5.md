@@ -183,7 +183,20 @@ Al abrir el asistente sin mensajes:
 | Elemento | Estado |
 |----------|--------|
 | Local `npm run dev` | ✅ `/asistente` HTTP 200 |
-| Vercel | ✅ Requiere `DEEPSEEK_API_KEY` en variables de entorno |
+| Vercel producción | ✅ `project-gzlfs.vercel.app` — deploy `fb96c7d` Listo |
+| `DEEPSEEK_API_KEY` en Vercel | ✅ Configurada |
+| Demo achiote + seguimiento | ✅ Verificado en producción |
+
+---
+
+## Cierre de entrega
+
+| Elemento | Estado |
+|----------|--------|
+| Interfaz + integración RAG | ✅ |
+| Disclaimers | ✅ |
+| Producción | ✅ |
+| Evidencia visual | ⚠️ Ver [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md) |
 
 ---
 
@@ -197,6 +210,17 @@ Al abrir el asistente sin mensajes:
 | S5-A4 | `04_desde_ficha.png` | Flujo ficha → asistente con `?planta=` en URL |
 | S5-A5 | `05_disclaimer.png` | Pie con texto sanitario legible |
 | S5-A6 | `06_sesion_integracion.jpg` | Foto sesión de integración con el equipo |
+
+### Checklist evidencia S5 — Alumno A
+
+- [ ] S5-A1 — Asistente vacío + disclaimer  
+- [x] S5-A2 — Pregunta + respuesta (achiote en Vercel)  
+- [x] S5-A3 — Tarjetas con imagen  
+- [ ] S5-A4 — Flujo desde ficha  
+- [ ] S5-A5 — Disclaimer pie legible  
+- [ ] S5-A6 — Foto sesión  
+
+> Guía: [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md)
 
 ---
 

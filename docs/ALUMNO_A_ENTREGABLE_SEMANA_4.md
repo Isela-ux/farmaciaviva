@@ -157,7 +157,18 @@ Inicio (/)
 | Local (`npm run dev`) | ✅ Rutas `/catalogo`, `/planta/[id]`, `/asistente` responden 200 |
 | Deploy Vercel | ✅ `project-gzlfs.vercel.app` (root `web`) |
 | Catálogo en producción | ✅ |
-| Fichas en producción | ✅ (redeploy recomendado tras fix de ubicaciones) |
+| Fichas en producción | ✅ Incluye fix ubicaciones (commit `fb96c7d`) |
+
+---
+
+## Cierre de entrega
+
+| Elemento | Estado |
+|----------|--------|
+| Código S4 completo | ✅ |
+| Producción verificada | ✅ |
+| Documento entregable | ✅ Este archivo |
+| Evidencia visual | ⚠️ Ver [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md) |
 
 ---
 
@@ -182,7 +193,7 @@ Guardar en una carpeta `evidencia/semana4/alumno-a/` con los nombres sugeridos.
 | A5 | `05_filtros_combinados.png` | Búsqueda + familia + región activos a la vez; botón «Limpiar filtros» visible | `/catalogo` con los 3 filtros |
 | A6 | `06_tarjeta_imagen_real.png` | Una `PlantCard` con **foto real** de Supabase (no placeholder 🌱) | Zoom o recorte de una tarjeta del catálogo |
 | A7 | `07_ficha_encabezado.png` | Parte superior de ficha: título, nombre científico, familia, botón «Consultar al Médico Virtual», galería | `/planta/283?nombre=Ajonjolí` |
-| A8 | `08_ficha_usos_contraindicaciones.png` | Sección **Usos medicinales** con al menos un uso que muestre **Riesgos** en rojo/coral | Misma ficha, scroll a usos (ej. Ajonjolí o Manzanilla) |
+| A8 | `08_ficha_usos_contraindicaciones.png` | Sección **Usos medicinales** con al menos un uso que muestre **Riesgos** en rojo/coral | Scroll en ficha Ajonjolí o Ruda |
 | A9 | `09_ficha_propiedades_compuestos.png` | Secciones **Propiedades** y/o **Compuestos activos** visibles | Scroll en la misma ficha |
 | A10 | `10_ficha_ubicacion_lista.png` | Sección **Ubicación geográfica** con zonas agrupadas y **localidades en lista con viñetas** | `/planta/283?nombre=Ajonjolí` |
 | A11 | `11_ficha_bibliografia.png` | Sección **Bibliografía** con al menos una fuente | Scroll al final de la ficha |
@@ -206,8 +217,10 @@ Guardar en una carpeta `evidencia/semana4/alumno-a/` con los nombres sugeridos.
 - [ ] A11 — Bibliografía  
 - [ ] A12 — Volver al catálogo  
 - [ ] A13 — Ficha → asistente  
-- [ ] A14 — Producción Vercel  
+- [x] A14 — Producción Vercel  
 - [ ] A15 — Foto tutoría  
+
+> Guía completa: [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md)
 
 ---
 

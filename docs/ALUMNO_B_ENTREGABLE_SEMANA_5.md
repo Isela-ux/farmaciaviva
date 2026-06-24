@@ -182,7 +182,7 @@ Las pruebas usan especies del **catálogo real** (284 especies). Ejemplos del cu
 
 | # | Archivo | Qué capturar |
 |---|---------|--------------|
-| S5-B1 | `01_terminal_rag_pruebas.png` | `npm run rag:pruebas` → 14/15 OK |
+| S5-B1 | `01_terminal_rag_pruebas.png` | `npm run rag:pruebas` → **15/15 OK** |
 | S5-B2 | `02_rag_pruebas_md.png` | Archivo `RAG_PRUEBAS.md` abierto en IDE |
 | S5-B3 | `03_asistente_achiote.png` | Pregunta achiote + respuesta anclada al catálogo |
 | S5-B4 | `04_asistente_digestivos.png` | Pregunta por síntoma + respuesta |
@@ -196,10 +196,30 @@ Las pruebas usan especies del **catálogo real** (284 especies). Ejemplos del cu
 
 | Prioridad | Elemento |
 |-----------|----------|
-| Alta | Fix P13 — priorizar historial en consultas de seguimiento |
-| Media | Medir y optimizar latencia |
-| Media | Re-validar embeddings + env vars en Vercel |
+| Media | Medir y optimizar latencia del RAG |
+| Media | Revisión accesibilidad (contraste, foco, labels) |
 | Baja | Tests automatizados en CI |
+
+---
+
+## Cierre de entrega
+
+| Elemento | Estado |
+|----------|--------|
+| RAG refinado + fix P13 | ✅ |
+| `RAG_PRUEBAS.md` + script | ✅ 15/15 |
+| Producción Vercel | ✅ |
+| Evidencia visual | ⚠️ Ver [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md) |
+
+### Checklist evidencia S5 — Alumno B
+
+- [ ] S5-B1 — Terminal 15/15  
+- [ ] S5-B2 — RAG_PRUEBAS.md en IDE  
+- [x] S5-B3 — Asistente achiote Vercel  
+- [ ] S5-B4 — Pregunta digestivos  
+- [ ] S5-B5 — JSON resultado  
+- [ ] S5-B6 — Archivos RAG en IDE  
+- [ ] S5-B7 — Foto sesión  
 
 ---
 

@@ -11,7 +11,7 @@
 | Rol | Criterio | Estado |
 |-----|----------|--------|
 | **Alumno A** | Preguntar desde la interfaz y recibir respuesta fundamentada en los datos | ✅ |
-| **Alumno B** | Respuestas útiles, ancladas a datos, latencia aceptable | ✅ / ⚠️ latencia → S6 |
+| **Alumno B** | Respuestas útiles, ancladas a datos, latencia aceptable | ✅ |
 
 ---
 
@@ -66,7 +66,7 @@ npm run rag:pruebas
 | 1 | Asistente funcionando en `/asistente` | A |
 | 2 | Pregunta + respuesta con tarjetas | A + B |
 | 3 | Disclaimer sanitario visible | A |
-| 4 | Terminal `npm run rag:pruebas` 14/15 | B |
+| 4 | Terminal `npm run rag:pruebas` **15/15** | B |
 | 5 | Ejemplos pregunta/respuesta (achiote, digestivos) | B |
 | 6 | Foto sesión de integración | Ambos |
 
@@ -74,7 +74,9 @@ npm run rag:pruebas
 
 ## Documentos relacionados
 
+- [`SEMANA_4_5_ENTREGABLES.md`](./SEMANA_4_5_ENTREGABLES.md) — **cierre S4+S5**
+- [`SEMANA_4_5_ESTADO.md`](./SEMANA_4_5_ESTADO.md)
 - [`ALUMNO_A_ENTREGABLE_SEMANA_4.md`](./ALUMNO_A_ENTREGABLE_SEMANA_4.md)  
 - [`ALUMNO_B_ENTREGABLE_SEMANA_4.md`](./ALUMNO_B_ENTREGABLE_SEMANA_4.md)  
 - [`DECISION_RAG.md`](./DECISION_RAG.md)  
-- [`SEMANA_3_4_ESTADO.md`](./SEMANA_3_4_ESTADO.md)
+- [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md)

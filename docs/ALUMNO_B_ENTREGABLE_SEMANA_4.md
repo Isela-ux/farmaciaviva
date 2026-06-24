@@ -221,6 +221,17 @@ Flujo: extrae último mensaje del usuario → `buscarContextoRAG()` → `streamT
 
 ---
 
+## Cierre de entrega
+
+| Elemento | Estado |
+|----------|--------|
+| Pipeline RAG v1 en producción | ✅ |
+| Validación `npm run rag:pruebas` | ✅ 15/15 (tras fix P13, Semana 5) |
+| Variables Vercel | ✅ Configuradas |
+| Evidencia visual | ⚠️ Ver [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md) |
+
+---
+
 ## Lista exacta de capturas — Alumno B
 
 Guardar en `evidencia/semana4/alumno-b/` con los nombres sugeridos.
@@ -231,7 +242,7 @@ Guardar en `evidencia/semana4/alumno-b/` con los nombres sugeridos.
 | B2 | `02_supabase_sql_conteo.png` | SQL Editor con resultado de `SELECT COUNT(*) FROM plant_embeddings;` → **857** | Supabase SQL Editor |
 | B3 | `03_supabase_sql_especies.png` | SQL: `SELECT COUNT(DISTINCT id_especie) FROM plant_embeddings;` → **284** | Supabase SQL Editor |
 | B4 | `04_arquitectura_archivos.png` | Explorador de archivos o IDE mostrando `rag.ts`, `api/chat/route.ts`, `embeddings.ts` | VS Code / Cursor |
-| B5 | `05_asistente_pregunta_planta.png` | `/asistente` con pregunta enviada: «¿Para qué sirve la manzanilla?» y **respuesta visible** | `http://localhost:3000/asistente` |
+| B5 | `05_asistente_pregunta_planta.png` | `/asistente` con «¿Para qué sirve el achiote?» y **respuesta visible** | Vercel o local |
 | B6 | `06_asistente_pregunta_semantica.png` | Pregunta por síntoma: «Plantas para problemas digestivos» + respuesta | Misma ruta |
 | B7 | `07_asistente_tarjetas_planta.png` | Respuesta del chat con **tarjetas de plantas** (imagen + nombre) debajo del mensaje | Pregunta que mencione planta con foto en catálogo |
 | B8 | `08_asistente_desde_ficha.png` | URL con `?planta=283&nombre=Ajonjolí` y pantalla del Médico Virtual | Desde botón en ficha |
@@ -259,15 +270,17 @@ Resultado esperado: **857**, **284**, **0**.
 - [ ] B2 — SQL conteo total  
 - [ ] B3 — SQL especies distintas  
 - [ ] B4 — Archivos del pipeline  
-- [ ] B5 — Pregunta por planta concreta  
+- [x] B5 — Pregunta por planta (achiote)  
 - [ ] B6 — Pregunta semántica / por síntoma  
-- [ ] B7 — Tarjetas con imagen en chat  
+- [x] B7 — Tarjetas con imagen en chat  
 - [ ] B8 — Asistente desde ficha  
-- [ ] B9 — Pregunta de seguimiento  
-- [ ] B10 — Variables de entorno (sin secretos)  
+- [x] B9 — Pregunta de seguimiento  
+- [x] B10 — Variables de entorno (sin secretos)  
 - [ ] B11 — Build exitoso  
-- [ ] B12 — Producción Vercel  
+- [x] B12 — Producción Vercel  
 - [ ] B13 — Foto tutoría  
+
+> Guía completa: [`evidencia/MAPEO_CAPTURAS.md`](../evidencia/MAPEO_CAPTURAS.md)
 
 ---
 
