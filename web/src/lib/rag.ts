@@ -10,7 +10,6 @@ import {
   extraerTerminosBusqueda,
   obtenerFichaPlanta,
 } from "@/lib/plants";
-import { etiquetaUbicacion } from "@/lib/images";
 import type { FichaPlanta, PlantaCatalogo, PlantEmbedding } from "@/types/database";
 
 const LIMITE_CONTEXTO = 3;
@@ -37,21 +36,22 @@ function textoContextoDesdeFicha(ficha: FichaPlanta): string {
     lineas.push(`Origen geográfico: ${ficha.especie.origen_geografico}`);
   }
 
-  if (ficha.ubicaciones.length > 0) {
-    const lugares = ficha.ubicaciones
-      .slice(0, 12)
-      .map((eu) => {
-        const ubi = ficha.catalogoUbicaciones.get(eu.id_ubicacion);
-        const lugar = ubi ? etiquetaUbicacion(ubi) : `Ubicación #${eu.id_ubicacion}`;
-        const detalles = [
-          eu.es_nativa != null && (eu.es_nativa ? "nativa" : "no nativa"),
-          eu.es_cultivada != null && (eu.es_cultivada ? "cultivada" : ""),
-          eu.abundancia,
-          eu.observaciones,
+  if (ficha.ubicacionesAgrupadas.length > 0) {
+    const lugares = ficha.ubicacionesAgrupadas
+      .map((grupo) => {
+        const partes = [grupo.tituloZona];
+        if (grupo.localidades.length > 0) {
+          partes.push(grupo.localidades.join(", "));
+        }
+        const metadatos = [
+          grupo.es_nativa != null && (grupo.es_nativa ? "nativa" : "no nativa"),
+          grupo.es_cultivada != null && (grupo.es_cultivada ? "cultivada" : ""),
+          grupo.abundancia,
+          grupo.observaciones,
         ]
           .filter(Boolean)
           .join("; ");
-        return detalles ? `${lugar} (${detalles})` : lugar;
+        return metadatos ? `${partes.join(" — ")} (${metadatos})` : partes.join(" — ");
       })
       .join("\n- ");
     lineas.push(`Ubicaciones reportadas:\n- ${lugares}`);
@@ -183,10 +183,24 @@ export async function buscarContextoRAG(
   const mensajes = opciones?.mensajes ?? [];
   const consultaActual = consulta.trim();
 
-  const textoConversacion = mensajes.map((m) => m.content).join("\n");
   const consultaExpandida = construirConsultaRAG(mensajes, consultaActual);
   const consultaVector =
     consultaActual.length >= 8 ? consultaActual : consultaExpandida;
+
+  // Prioridad: la planta que el usuario pregunta AHORA (no mensajes viejos del chat)
+  const mencionadasActual = await buscarPlantasMencionadasEnTexto(consultaActual, limite);
+  if (mencionadasActual.length > 0) {
+    return chunksDesdePlantas(mencionadasActual.slice(0, limite));
+  }
+
+  if (!esConsultaDeSeguimiento(consultaActual)) {
+    const porTextoActual = await buscarPlantasPorTexto(consultaActual, limite);
+    if (porTextoActual.length > 0) {
+      return chunksDesdePlantas(porTextoActual.slice(0, limite));
+    }
+  }
+
+  const textoConversacion = mensajes.map((m) => m.content).join("\n");
 
   const [plantasMencionadas, plantasPorBusqueda] = await Promise.all([
     buscarPlantasMencionadasEnTexto(textoConversacion, limite),

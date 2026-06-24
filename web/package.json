@@ -8,7 +8,8 @@
     "start": "next start",
     "lint": "eslint",
     "embeddings": "node ../supabase/scripts/generate-embeddings.mjs",
-    "embeddings:test": "node ../supabase/scripts/generate-embeddings.mjs --limit=10"
+    "embeddings:test": "node ../supabase/scripts/generate-embeddings.mjs --limit=10",
+    "rag:pruebas": "node ../supabase/scripts/rag-pruebas.mjs"
   },
   "dependencies": {
     "@ai-sdk/deepseek": "^2.0.39",

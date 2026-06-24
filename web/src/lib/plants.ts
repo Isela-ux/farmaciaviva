@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { etiquetaEspecie, ordenarImagenes, urlImagenParaLista } from "@/lib/images";
+import { etiquetaEspecie, etiquetaUbicacion, ordenarImagenes, urlImagenParaLista } from "@/lib/images";
 import type {
   CategoriaUso,
   CompuestoActivo,
@@ -19,6 +19,7 @@ import type {
   PlantaCatalogo,
   PlantaMedicoVirtual,
   Propiedad,
+  UbicacionAgrupada,
   UbicacionGeografica,
   UsoPlanta,
 } from "@/types/database";
@@ -168,6 +169,114 @@ async function cargarPorIds<T>(
   return mapa;
 }
 
+function claveContenidoUbicacion(eu: EspecieUbicacion): string {
+  return [
+    eu.es_nativa?.toString() ?? "",
+    eu.es_cultivada?.toString() ?? "",
+    eu.abundancia?.trim() ?? "",
+    eu.observaciones?.trim() ?? "",
+  ].join("|");
+}
+
+/** Misma lógica que Ubicacion.kt (Android): quita vínculos repetidos y lugares que se ven iguales. */
+function deduplicarUbicacionesPorEspecie(
+  vinculos: EspecieUbicacion[],
+  catalogo: Map<number, UbicacionGeografica>
+): EspecieUbicacion[] {
+  const porId = new Map<number, EspecieUbicacion>();
+  for (const v of vinculos) {
+    porId.set(v.id_especie_ubicacion, v);
+  }
+
+  const vistosVinculo = new Set<string>();
+  const sinDuplicarVinculo: EspecieUbicacion[] = [];
+  for (const v of [...porId.values()].sort((a, b) => a.id_especie_ubicacion - b.id_especie_ubicacion)) {
+    const clave = `${v.id_ubicacion}|${claveContenidoUbicacion(v)}`;
+    if (vistosVinculo.has(clave)) continue;
+    vistosVinculo.add(clave);
+    sinDuplicarVinculo.push(v);
+  }
+
+  const vistosEtiqueta = new Set<string>();
+  const resultado: EspecieUbicacion[] = [];
+  for (const v of sinDuplicarVinculo) {
+    const ubi = catalogo.get(v.id_ubicacion);
+    const etiqueta = ubi ? etiquetaUbicacion(ubi) : `Ubicación #${v.id_ubicacion}`;
+    const clave = `${etiqueta}|${claveContenidoUbicacion(v)}`;
+    if (vistosEtiqueta.has(clave)) continue;
+    vistosEtiqueta.add(clave);
+    resultado.push(v);
+  }
+
+  return resultado.sort((a, b) => {
+    const ubiA = catalogo.get(a.id_ubicacion);
+    const ubiB = catalogo.get(b.id_ubicacion);
+    const ta = (ubiA ? etiquetaUbicacion(ubiA) : `Ubicación #${a.id_ubicacion}`).toLowerCase();
+    const tb = (ubiB ? etiquetaUbicacion(ubiB) : `Ubicación #${b.id_ubicacion}`).toLowerCase();
+    if (ta !== tb) return ta.localeCompare(tb, "es");
+    return a.id_especie_ubicacion - b.id_especie_ubicacion;
+  });
+}
+
+function tituloZonaUbicacion(ubi: UbicacionGeografica): string {
+  const partes = [ubi.pais, ubi.estado, ubi.municipio]
+    .map((p) => p?.trim())
+    .filter((p): p is string => Boolean(p));
+  return partes.join(" · ") || etiquetaUbicacion(ubi);
+}
+
+/** Agrupa micro-localidades bajo la misma zona (país · estado · municipio) y mismo reporte. */
+function agruparUbicacionesPorEspecie(
+  vinculos: EspecieUbicacion[],
+  catalogo: Map<number, UbicacionGeografica>
+): UbicacionAgrupada[] {
+  const grupos = new Map<string, UbicacionAgrupada>();
+
+  for (const v of vinculos) {
+    const ubi = catalogo.get(v.id_ubicacion);
+    if (!ubi) continue;
+
+    const tituloZona = tituloZonaUbicacion(ubi);
+    const clave = `${tituloZona}|${claveContenidoUbicacion(v)}`;
+    const localidad = ubi.localidad?.trim();
+
+    const existente = grupos.get(clave);
+    if (!existente) {
+      grupos.set(clave, {
+        tituloZona,
+        localidades: localidad ? [localidad] : [],
+        es_nativa: v.es_nativa,
+        es_cultivada: v.es_cultivada,
+        abundancia: v.abundancia,
+        observaciones: v.observaciones,
+      });
+      continue;
+    }
+
+    if (localidad && !existente.localidades.includes(localidad)) {
+      existente.localidades.push(localidad);
+    }
+  }
+
+  return [...grupos.values()]
+    .map((grupo) => ({
+      ...grupo,
+      localidades: [...grupo.localidades].sort((a, b) => a.localeCompare(b, "es")),
+    }))
+    .sort((a, b) => a.tituloZona.localeCompare(b.tituloZona, "es"));
+}
+
+export function etiquetaMetadatosUbicacion(grupo: UbicacionAgrupada): string {
+  return [
+    grupo.es_nativa != null && (grupo.es_nativa ? "Nativa" : "No nativa"),
+    grupo.es_cultivada != null && (grupo.es_cultivada ? "Cultivada" : ""),
+    grupo.abundancia,
+    grupo.observaciones,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+}
+
 export async function obtenerFichaPlanta(idEspecie: number): Promise<FichaPlanta | null> {
   const especie = await obtenerEspecieDetalle(idEspecie);
   if (!especie) return null;
@@ -224,6 +333,9 @@ export async function obtenerFichaPlanta(idEspecie: number): Promise<FichaPlanta
     alt.forEach((v, k) => catalogoFuentes.set(k, v));
   }
 
+  const ubicacionesUnicas = deduplicarUbicacionesPorEspecie(ubiList, catalogoUbicaciones);
+  const ubicacionesAgrupadas = agruparUbicacionesPorEspecie(ubicacionesUnicas, catalogoUbicaciones);
+
   return {
     especie,
     nombresComunes: (nombresComunes.data ?? []) as NombreComun[],
@@ -238,7 +350,8 @@ export async function obtenerFichaPlanta(idEspecie: number): Promise<FichaPlanta
     catalogoCompuestos,
     habitats: habList,
     catalogoHabitats,
-    ubicaciones: ubiList,
+    ubicaciones: ubicacionesUnicas,
+    ubicacionesAgrupadas,
     catalogoUbicaciones,
     fuentes: fuentesList,
     catalogoFuentes,
@@ -437,6 +550,20 @@ export async function buscarPlantasParaTarjetas(
 ): Promise<PlantaMedicoVirtual[]> {
   const consultaActual = consulta.trim();
   if (!consultaActual) return [];
+
+  const mencionadasActual = await buscarPlantasMencionadasEnTexto(consultaActual, 3);
+  if (mencionadasActual.length > 0) {
+    return obtenerPlantasPorIds(mencionadasActual.map((p) => p.nombreComun.id_especie));
+  }
+
+  if (!esConsultaDeSeguimiento(consultaActual)) {
+    const porTexto = await buscarPlantasPorTexto(consultaActual, 2);
+    if (porTexto.length > 0) {
+      return obtenerPlantasPorIds(
+        porTexto.slice(0, 2).map((p) => p.nombreComun.id_especie)
+      );
+    }
+  }
 
   const textoConversacion = mensajes.map((m) => m.content).join("\n");
   const mencionadas = await buscarPlantasMencionadasEnTexto(textoConversacion, 3);

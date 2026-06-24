@@ -1,5 +1,12 @@
-/** Modelo de chat DeepSeek (compatible con AI SDK). */
-export const CHAT_MODEL = "deepseek-chat";
+/** DeepSeek V4 Flash — modelo eficiente (cuota del doctor, ~7.1M tokens). */
+export const CHAT_MODEL = "deepseek-v4-flash";
+
+/** Sin thinking: respuestas más rápidas y menor consumo de tokens. */
+export const DEEPSEEK_PROVIDER_OPTIONS = {
+  deepseek: {
+    thinking: { type: "disabled" as const },
+  },
+};
 
 /** Modelo usado al indexar embeddings (768 dims, pgvector). */
 export const EMBEDDING_MODEL = "gemini-embedding-001";

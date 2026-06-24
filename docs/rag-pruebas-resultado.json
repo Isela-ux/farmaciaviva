@@ -1,0 +1,210 @@
+{
+  "fecha": "2026-06-24T18:13:33.973Z",
+  "total": 15,
+  "ok": 15,
+  "fallos": 0,
+  "resultados": [
+    {
+      "id": "P01",
+      "consulta": "¿Para qué sirve el achiote?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Achiote"
+      ],
+      "ids": [
+        111
+      ]
+    },
+    {
+      "id": "P02",
+      "consulta": "Plantas para problemas digestivos",
+      "tipo": "sintoma",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Incienso verde estafiate",
+        "Margarita",
+        "Anís de estrella"
+      ],
+      "ids": [
+        78,
+        79,
+        88
+      ]
+    },
+    {
+      "id": "P03",
+      "consulta": "¿Qué plantas tienen propiedades antiinflamatorias?",
+      "tipo": "propiedad",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Quiebradacha / jaboncillo",
+        "Guaco",
+        "Incienso verde estafiate"
+      ],
+      "ids": [
+        381,
+        70,
+        78
+      ]
+    },
+    {
+      "id": "P04",
+      "consulta": "¿Para qué se usa la ruda?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Ruda"
+      ],
+      "ids": [
+        377
+      ]
+    },
+    {
+      "id": "P05",
+      "consulta": "¿Dónde crece el ajonjolí en Tabasco?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Ajonjolí"
+      ],
+      "ids": [
+        283
+      ]
+    },
+    {
+      "id": "P06",
+      "consulta": "¿Cuáles son los usos medicinales de la sábila?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Sábila"
+      ],
+      "ids": [
+        465
+      ]
+    },
+    {
+      "id": "P07",
+      "consulta": "plantas para la tos",
+      "tipo": "sintoma",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Cinco negritos"
+      ],
+      "ids": [
+        453
+      ]
+    },
+    {
+      "id": "P08",
+      "consulta": "¿La ruda tiene contraindicaciones?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Ruda"
+      ],
+      "ids": [
+        377
+      ]
+    },
+    {
+      "id": "P09",
+      "consulta": "¿Cómo se prepara el achiote en decocción?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Achiote"
+      ],
+      "ids": [
+        111
+      ]
+    },
+    {
+      "id": "P10",
+      "consulta": "¿Qué es Bixa orellana?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Bonxan guano redondo o yucateco",
+        "Achiote",
+        "Uvita o parra"
+      ],
+      "ids": [
+        61,
+        111,
+        463
+      ]
+    },
+    {
+      "id": "P11",
+      "consulta": "plantas para quemaduras de la piel",
+      "tipo": "sintoma",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Sábila",
+        "Hoja de sapo hierba del topo",
+        "Achiote"
+      ],
+      "ids": [
+        465,
+        82,
+        111
+      ]
+    },
+    {
+      "id": "P12",
+      "consulta": "¿Para qué sirve la margarita?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Margarita"
+      ],
+      "ids": [
+        79
+      ]
+    },
+    {
+      "id": "P13",
+      "consulta": "¿Y sus contraindicaciones?",
+      "tipo": "seguimiento",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Achiote",
+        "Berenjena cimarrona",
+        "Palo de sangre"
+      ],
+      "ids": [
+        111,
+        423,
+        215
+      ]
+    },
+    {
+      "id": "P14",
+      "consulta": "¿Qué compuestos activos tiene el achiote?",
+      "tipo": "planta_concreta",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Achiote"
+      ],
+      "ids": [
+        111
+      ]
+    },
+    {
+      "id": "P15",
+      "consulta": "plantas medicinales para el insomnio o nervios",
+      "tipo": "sintoma",
+      "estado": "OK",
+      "plantasRecuperadas": [
+        "Zacate limón",
+        "Té de la abuela"
+      ],
+      "ids": [
+        295,
+        454
+      ]
+    }
+  ]
+}

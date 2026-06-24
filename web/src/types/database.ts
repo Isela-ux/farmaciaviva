@@ -165,6 +165,15 @@ export interface PlantaMedicoVirtual {
   imagenUrl: string | null;
 }
 
+export interface UbicacionAgrupada {
+  tituloZona: string;
+  localidades: string[];
+  es_nativa?: boolean | null;
+  es_cultivada?: boolean | null;
+  abundancia?: string | null;
+  observaciones?: string | null;
+}
+
 export interface FichaPlanta {
   especie: EspecieDetalle;
   nombresComunes: NombreComun[];
@@ -180,6 +189,7 @@ export interface FichaPlanta {
   habitats: EspecieHabitat[];
   catalogoHabitats: Map<number, Habitat>;
   ubicaciones: EspecieUbicacion[];
+  ubicacionesAgrupadas: UbicacionAgrupada[];
   catalogoUbicaciones: Map<number, UbicacionGeografica>;
   fuentes: DetalleFuenteEspecie[];
   catalogoFuentes: Map<number, Fuente>;

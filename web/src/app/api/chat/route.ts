@@ -1,6 +1,6 @@
 import { streamText, type UIMessage } from "ai";
 import { buscarContextoRAG, construirPromptSistema, modeloChat } from "@/lib/rag";
-import { tieneClaveDeepSeek } from "@/lib/ai-config";
+import { DEEPSEEK_PROVIDER_OPTIONS, tieneClaveDeepSeek } from "@/lib/ai-config";
 
 export const maxDuration = 30;
 
@@ -61,6 +61,7 @@ export async function POST(req: Request) {
     const result = streamText({
       model: modeloChat(),
       maxRetries: 0,
+      providerOptions: DEEPSEEK_PROVIDER_OPTIONS,
       system,
       messages: mensajesChat.map((m) => ({
         role: m.role as "user" | "assistant" | "system",

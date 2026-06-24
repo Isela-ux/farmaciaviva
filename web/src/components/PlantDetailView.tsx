@@ -1,7 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { SectionCard } from "@/components/SectionCard";
-import { etiquetaEspecie, etiquetaUbicacion } from "@/lib/images";
+import { etiquetaEspecie } from "@/lib/images";
+import { etiquetaMetadatosUbicacion } from "@/lib/plants";
 import type { FichaPlanta } from "@/types/database";
 
 export function PlantDetailView({
@@ -255,25 +256,24 @@ export function PlantDetailView({
         </SectionCard>
       )}
 
-      {ficha.ubicaciones.length > 0 && (
+      {ficha.ubicacionesAgrupadas.length > 0 && (
         <SectionCard title="Ubicación geográfica">
-          <ul className="space-y-2 text-sm">
-            {ficha.ubicaciones.map((eu) => {
-              const ubi = ficha.catalogoUbicaciones.get(eu.id_ubicacion);
+          <ul className="space-y-3 text-sm">
+            {ficha.ubicacionesAgrupadas.map((grupo) => {
+              const metadatos = etiquetaMetadatosUbicacion(grupo);
               return (
-                <li key={eu.id_especie_ubicacion}>
-                  <span className="font-medium text-forest">
-                    {ubi ? etiquetaUbicacion(ubi) : `Ubicación #${eu.id_ubicacion}`}
-                  </span>
-                  <p className="text-xs text-earth-soft">
-                    {[
-                      eu.es_nativa != null && (eu.es_nativa ? "Nativa" : "No nativa"),
-                      eu.es_cultivada != null && (eu.es_cultivada ? "Cultivada" : ""),
-                      eu.abundancia,
-                    ]
-                      .filter(Boolean)
-                      .join(" · ")}
-                  </p>
+                <li key={`${grupo.tituloZona}|${metadatos}`}>
+                  <span className="font-medium text-forest">{grupo.tituloZona}</span>
+                  {grupo.localidades.length > 0 && (
+                    <ul className="mt-1 list-disc space-y-0.5 pl-4 text-xs text-earth">
+                      {grupo.localidades.map((localidad) => (
+                        <li key={localidad}>{localidad}</li>
+                      ))}
+                    </ul>
+                  )}
+                  {metadatos && (
+                    <p className="mt-0.5 text-xs text-earth-soft">{metadatos}</p>
+                  )}
                 </li>
               );
             })}

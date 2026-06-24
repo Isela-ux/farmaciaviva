@@ -55,7 +55,7 @@
 
 | Capa | Tecnología |
 |------|------------|
-| Chat | DeepSeek (`deepseek-chat`) |
+| Chat | DeepSeek V4 Flash (`deepseek-v4-flash`) |
 | Embeddings en BD | gemini-embedding-001 (768 dims) — ya indexados |
 | Embeddings consulta | Opcional (misma clave Google) |
 | Vector store | pgvector en Supabase |
