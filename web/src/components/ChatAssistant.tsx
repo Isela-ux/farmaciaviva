@@ -41,61 +41,25 @@ function textoMensaje(m: UIMessage): string {
   );
 }
 
-function normalizarTexto(s: string): string {
-  return s.normalize("NFD").replace(/\p{M}/gu, "").toLowerCase();
-}
-
-function textoMencionaPlanta(texto: string, p: PlantaMedicoVirtual): boolean {
-  const t = normalizarTexto(texto);
-  if (t.includes(normalizarTexto(p.nombreComun))) return true;
-  const genero = p.nombreCientifico?.split(/\s+/)[0];
-  return Boolean(genero && t.includes(normalizarTexto(genero)));
-}
-
-/** Solo muestra tarjetas cuando la planta aparece en la consulta o en la respuesta. */
-function plantasVisibles(
-  candidatas: PlantaMedicoVirtual[],
-  consultaUsuario: string,
-  textoRespuesta: string,
-  respuestaCompleta: boolean
-): PlantaMedicoVirtual[] {
-  if (!candidatas.length) return [];
-
-  const porConsulta = candidatas.filter((p) => textoMencionaPlanta(consultaUsuario, p));
-  if (porConsulta.length === 1) return porConsulta;
-  if (porConsulta.length > 1) return porConsulta.slice(0, 3);
-
-  if (!respuestaCompleta || !textoRespuesta.trim()) return [];
-
-  return candidatas
-    .filter((p) => textoMencionaPlanta(textoRespuesta, p))
-    .slice(0, 3);
-}
-
-
-
 async function buscarPlantasDelTurno(
-
-  mensajes: { role: string; content: string }[]
-
+  mensajes: { role: string; content: string }[],
+  consulta: string,
+  respuestaAsistente: string
 ): Promise<PlantaMedicoVirtual[]> {
-
   const res = await fetch("/api/chat/plantas", {
-
     method: "POST",
-
     headers: { "Content-Type": "application/json" },
-
-    body: JSON.stringify({ messages: mensajes }),
-
+    body: JSON.stringify({
+      messages: mensajes,
+      consulta,
+      respuestaAsistente,
+    }),
   });
 
   if (!res.ok) return [];
 
   const data = (await res.json()) as { plantas?: PlantaMedicoVirtual[] };
-
   return data.plantas ?? [];
-
 }
 
 
@@ -119,13 +83,12 @@ export function ChatAssistant({
 }) {
 
   const finRef = useRef<HTMLDivElement>(null);
+  const plantasResueltasRef = useRef<Set<string>>(new Set());
 
   const [input, setInput] = useState("");
 
   const [plantasPorIndice, setPlantasPorIndice] = useState<
-
     Map<number, PlantaMedicoVirtual[]>
-
   >(new Map());
 
   const transport = useMemo(
@@ -145,35 +108,49 @@ export function ChatAssistant({
 
 
   useEffect(() => {
-
     finRef.current?.scrollIntoView({ behavior: "smooth" });
-
   }, [messages, cargando]);
 
+  /** Tarjetas según la respuesta final del turno (no el historial previo). */
+  useEffect(() => {
+    if (cargando) return;
 
+    for (let i = 0; i < messages.length; i++) {
+      const m = messages[i];
+      if (m.role !== "assistant") continue;
+      if (plantasResueltasRef.current.has(m.id)) continue;
+
+      const respuesta = textoMensaje(m).trim();
+      if (!respuesta) continue;
+
+      const consulta =
+        i > 0 && messages[i - 1]?.role === "user"
+          ? textoMensaje(messages[i - 1]).trim()
+          : "";
+
+      plantasResueltasRef.current.add(m.id);
+
+      const historial = messages
+        .slice(0, i)
+        .map((msg) => ({ role: msg.role, content: textoMensaje(msg) }));
+
+      void buscarPlantasDelTurno(historial, consulta, respuesta).then((plantas) => {
+        if (!plantas.length) return;
+        setPlantasPorIndice((prev) => {
+          const next = new Map(prev);
+          next.set(i, plantas);
+          return next;
+        });
+      });
+    }
+  }, [messages, cargando]);
 
   function enviar(texto: string) {
     const t = texto.trim();
     if (!t || cargando) return;
 
     setInput("");
-
-    const historial = [
-      ...messages.map((m) => ({ role: m.role, content: textoMensaje(m) })),
-      { role: "user" as const, content: t },
-    ];
-    const indiceAsistente = messages.length + 1;
-
     void sendMessage({ text: t });
-
-    buscarPlantasDelTurno(historial).then((plantas) => {
-      if (!plantas.length) return;
-      setPlantasPorIndice((prev) => {
-        const next = new Map(prev);
-        next.set(indiceAsistente, plantas);
-        return next;
-      });
-    });
   }
 
 
@@ -271,19 +248,8 @@ export function ChatAssistant({
 
 
         {messages.map((m, i) => {
-          const consultaUsuario =
-            i > 0 && messages[i - 1]?.role === "user"
-              ? textoMensaje(messages[i - 1])
-              : "";
-          const esUltimoMensaje = i === messages.length - 1;
-          const respuestaCompleta =
-            m.role !== "assistant" || !esUltimoMensaje || !cargando;
-          const plantas = plantasVisibles(
-            plantasPorIndice.get(i) ?? [],
-            consultaUsuario,
-            textoMensaje(m),
-            respuestaCompleta
-          );
+          const plantas =
+            m.role === "assistant" ? (plantasPorIndice.get(i) ?? []) : [];
 
           return (
             <div

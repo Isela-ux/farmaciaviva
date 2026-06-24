@@ -5,13 +5,21 @@ export async function POST(req: Request) {
   const body = await req.json();
   const messages: MensajeConversacion[] = body.messages ?? [];
 
+  const bodyConsulta = typeof body.consulta === "string" ? body.consulta.trim() : "";
   const ultimoUsuario = [...messages].reverse().find((m) => m.role === "user");
-  const consulta = ultimoUsuario?.content?.trim() ?? "";
+  const consulta = bodyConsulta || ultimoUsuario?.content?.trim() || "";
 
-  if (!consulta) {
+  const respuestaAsistente =
+    typeof body.respuestaAsistente === "string" ? body.respuestaAsistente.trim() : "";
+
+  if (!consulta && !respuestaAsistente) {
     return Response.json({ plantas: [] });
   }
 
-  const plantas = await buscarPlantasParaTarjetas(consulta, messages);
+  const plantas = await buscarPlantasParaTarjetas(
+    consulta,
+    messages,
+    respuestaAsistente || undefined
+  );
   return Response.json({ plantas });
 }

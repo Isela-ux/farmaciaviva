@@ -548,42 +548,46 @@ export function esConsultaDeSeguimiento(consulta: string): boolean {
  * Plantas para tarjetas del Médico Virtual.
  * Más estricto que buscarContextoRAG: solo nombres explícitos o coincidencia directa,
  * sin búsqueda vectorial ni medicinal amplia (evita imágenes irrelevantes).
+ *
+ * Si hay `respuestaAsistente`, prioriza las especies que el modelo nombró en ese turno
+ * (evita mostrar achiote del historial cuando la respuesta habla de guayaba).
  */
 export async function buscarPlantasParaTarjetas(
   consulta: string,
-  mensajes: { role: string; content: string }[] = []
+  mensajes: { role: string; content: string }[] = [],
+  respuestaAsistente?: string
 ): Promise<PlantaMedicoVirtual[]> {
   const consultaActual = consulta.trim();
-  if (!consultaActual) return [];
+  const respuesta = respuestaAsistente?.trim() ?? "";
+  if (!consultaActual && !respuesta) return [];
+
+  const idsDesde = (plantas: PlantaCatalogo[]) =>
+    obtenerPlantasPorIds(plantas.map((p) => p.nombreComun.id_especie));
+
+  if (respuesta) {
+    const enRespuesta = await buscarPlantasMencionadasEnTexto(respuesta, 3);
+    if (enRespuesta.length > 0) {
+      return idsDesde(enRespuesta);
+    }
+  }
 
   const mencionadasActual = await buscarPlantasMencionadasEnTexto(consultaActual, 3);
   if (mencionadasActual.length > 0) {
-    return obtenerPlantasPorIds(mencionadasActual.map((p) => p.nombreComun.id_especie));
+    return idsDesde(mencionadasActual.slice(0, 3));
   }
 
   if (!esConsultaDeSeguimiento(consultaActual)) {
     const porTexto = await buscarPlantasPorTexto(consultaActual, 2);
     if (porTexto.length > 0) {
-      return obtenerPlantasPorIds(
-        porTexto.slice(0, 2).map((p) => p.nombreComun.id_especie)
-      );
+      return idsDesde(porTexto.slice(0, 2));
     }
+    return [];
   }
 
   const textoConversacion = mensajes.map((m) => m.content).join("\n");
-  const mencionadas = await buscarPlantasMencionadasEnTexto(textoConversacion, 3);
-
-  if (mencionadas.length > 0) {
-    return obtenerPlantasPorIds(mencionadas.map((p) => p.nombreComun.id_especie));
-  }
-
-  if (!esConsultaDeSeguimiento(consultaActual)) {
-    const porTexto = await buscarPlantasPorTexto(consultaActual, 2);
-    if (porTexto.length > 0) {
-      return obtenerPlantasPorIds(
-        porTexto.slice(0, 2).map((p) => p.nombreComun.id_especie)
-      );
-    }
+  const delHistorial = await buscarPlantasMencionadasEnTexto(textoConversacion, 3);
+  if (delHistorial.length > 0) {
+    return idsDesde(delHistorial);
   }
 
   return [];
