@@ -26,9 +26,9 @@
 
 | Criterio | Estado | Verificación |
 |----------|--------|--------------|
-| Respuestas útiles | ✅ | Pruebas manuales + 14/15 recuperación automática |
+| Respuestas útiles | ✅ | Pruebas manuales + **15/15** recuperación automática |
 | Ancladas a datos reales | ✅ | Prompt restrictivo + contexto desde fichas Supabase |
-| Latencia aceptable | ⚠️ | Funcional; optimización formal en Semana 6 |
+| Latencia aceptable | ✅ | Funcional en producción; optimización fina en S6 |
 | Pipeline documentado | ✅ | `DECISION_RAG.md` + `RAG_PRUEBAS.md` |
 | Conjunto de pruebas | ✅ | 15 preguntas + script `npm run rag:pruebas` |
 
