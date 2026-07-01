@@ -1,0 +1,119 @@
+import type { PadecimientoSeleccionado } from "@/lib/arbol-padecimientos";
+import type { PlantEmbedding } from "@/types/database";
+
+/** Agente 1 — Especialista clínico: triaje con preguntas breves. */
+export function promptTriaje(
+  pad: PadecimientoSeleccionado,
+  turnosTriaje: number,
+  respuestasPaciente: number
+): string {
+  if (respuestasPaciente >= 3) {
+    return `Eres ${pad.especialista} del Médico Virtual de Farmacia Viva (recurso educativo, México).
+
+PADECIMIENTO: ${pad.padecimiento}
+RUTA: ${pad.ruta.join(" → ")}
+
+El paciente ya respondió las preguntas de triaje.
+- Resume en 2 frases lo que entendiste (intensidad, duración, síntomas asociados).
+- NO hagas ninguna pregunta nueva.
+- NO recomiendes plantas todavía.
+- Termina con la línea exacta en una línea aparte:
+[TRIAJE_COMPLETO]`;
+  }
+
+  return `Eres ${pad.especialista} del Médico Virtual de Farmacia Viva (recurso educativo, México).
+
+PADECIMIENTO REPORTADO: ${pad.padecimiento}
+RUTA DE SÍNTOMAS: ${pad.ruta.join(" → ")}
+
+TU ROL (Agente de triaje):
+- Lee TODO lo que el paciente ya dijo; NO repitas preguntas sobre datos que ya están en su mensaje.
+- Si el padecimiento ya indica zona o tipo (ojos, digestión, luz solar, etc.), NO preguntes otra vez «qué parte del cuerpo»; pregunta intensidad, duración o síntomas asociados.
+- Si menciona dolor o molestia con la luz, el contexto es ocular (fotofobia) salvo que diga lo contrario.
+- Haz UNA sola pregunta breve y clara por turno (intensidad, duración, síntomas asociados, etc.).
+- NO recomiendes plantas, preparaciones ni medicamentos.
+- Tono empático, español claro.
+- Pregunta ${turnosTriaje} de máximo 3.
+- PROHIBIDO escribir [TRIAJE_COMPLETO] mientras aún estés preguntando.
+- Espera la respuesta del paciente antes de cerrar el triaje.`;
+}
+
+/** Agente 2 y 3 — Plantas + preparación, con contexto RAG. */
+export function promptRecomendacion(
+  pad: PadecimientoSeleccionado,
+  contexto: PlantEmbedding[],
+  notasTriaje: string
+): string {
+  const fragmentos = contexto
+    .map((c) => {
+      const nombre =
+        (c.metadata?.nombre_comun as string | undefined) ||
+        c.content.split("\n")[0]?.replace(/^Planta:\s*/, "") ||
+        "Planta";
+      return `### ${nombre}\n${c.content}`;
+    })
+    .join("\n\n");
+
+  return `Eres un equipo de dos especialistas del Médico Virtual de Farmacia Viva (México).
+Responde SOLO con información del CONTEXTO RECUPERADO. Español claro, máximo 220 palabras total.
+
+PADECIMIENTO: ${pad.padecimiento}
+ESPECIALISTA CLÍNICO: ${pad.especialista}
+NOTAS DEL TRIAJE: ${notasTriaje || "Sin notas adicionales"}
+
+FORMATO OBLIGATORIO (dos secciones con estos encabezados exactos):
+
+## 🌿 Especialista en plantas medicinales
+- Viñetas (-) con 1 a 3 plantas del catálogo, usos y por qué podrían ayudar en este padecimiento.
+- Solo plantas presentes en el contexto.
+
+## 🫖 Especialista en preparación
+- Viñetas (-) con forma de preparación, parte utilizada y vía (infusión, decocción, etc.) según el contexto.
+- Incluye una advertencia breve de consultar a un profesional de salud.
+
+CONTEXTO RECUPERADO:
+${fragmentos || "(Sin coincidencias en el catálogo para esta consulta)"}`;
+}
+
+export function extraerTriajeCompleto(texto: string): {
+  completo: boolean;
+  textoLimpio: string;
+  notasTriaje: string;
+} {
+  const completo = texto.includes("[TRIAJE_COMPLETO]");
+  const textoLimpio = texto.replace(/\[TRIAJE_COMPLETO\]/g, "").trim();
+  return { completo, textoLimpio, notasTriaje: textoLimpio };
+}
+
+export function contarTurnosTriaje(mensajes: { role: string; content: string }[]): number {
+  return mensajes.filter((m) => m.role === "assistant").length;
+}
+
+/** Respuestas reales del paciente (sin el mensaje automático inicial del sistema). */
+export function contarRespuestasPacienteTriaje(
+  mensajes: { role: string; content: string }[]
+): number {
+  const usuarios = mensajes.filter((m) => m.role === "user");
+  return Math.max(0, usuarios.length - 1);
+}
+
+/** Si el mensaje aún espera respuesta del paciente, no cerrar triaje. */
+export function esPreguntaPendiente(texto: string): boolean {
+  const t = texto.trim();
+  if (!t) return false;
+  if (t.includes("?") || t.includes("¿")) return true;
+  return /\b(cu[aá]l|cu[aá]ndo|cu[aá]nto|qu[eé]|c[oó]mo|describe|indica|presentas|tienes|sientes|hay)\b/i.test(
+    t
+  );
+}
+
+export function evaluarTriajeCompleto(
+  texto: string,
+  tieneMarcador: boolean,
+  respuestasPaciente: number
+): boolean {
+  if (esPreguntaPendiente(texto)) return false;
+  if (tieneMarcador && respuestasPaciente >= 1) return true;
+  if (respuestasPaciente >= 3 && !esPreguntaPendiente(texto)) return true;
+  return false;
+}

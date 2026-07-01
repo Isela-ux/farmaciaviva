@@ -524,8 +524,15 @@ export async function buscarPlantasMencionadasEnTexto(
 
   for (const p of ordenadas) {
     const comun = normalizarTextoBusqueda(p.nombreComun.nombre_comun);
-    if (comun.length < 4) continue;
-    if (!textoNorm.includes(comun)) continue;
+    const cientifico = p.nombreCientifico ? normalizarTextoBusqueda(p.nombreCientifico) : "";
+    const genero = cientifico.split(/\s+/)[0] ?? "";
+
+    const coincideComun = comun.length >= 4 && textoNorm.includes(comun);
+    const coincideCientifico =
+      cientifico.length >= 5 &&
+      (textoNorm.includes(cientifico) || (genero.length >= 5 && textoNorm.includes(genero)));
+
+    if (!coincideComun && !coincideCientifico) continue;
     if (ids.has(p.nombreComun.id_especie)) continue;
     ids.add(p.nombreComun.id_especie);
     resultados.push(p);
@@ -533,6 +540,24 @@ export async function buscarPlantasMencionadasEnTexto(
   }
 
   return resultados;
+}
+
+export function respuestaRechazaTarjetasPlantas(respuesta: string): boolean {
+  const t = normalizarTextoBusqueda(respuesta);
+  return (
+    /\b(no recomiendo|no recomendamos|sin consulta presencial|no sustituye|no automedicaci|sin coincidencias|ninguna planta|requiere atencion clinica|requiere consulta|consulta medica|consulta presencial|atencion clinica personal|atencion medica)\b/.test(
+      t
+    ) || /\bno recomiend\w*\s+(plantas|automedicaci)/.test(t)
+  );
+}
+
+function esConsultaExplicitaPlanta(consulta: string): boolean {
+  const t = normalizarTextoBusqueda(consulta);
+  return (
+    /\b(para que sirve|para qué sirve|como se prepara|cómo se prepara|mas informacion|más informacion|informacion del|información del|hablame del|háblame del|planta llamada|que es la planta|qué es la planta)\b/.test(
+      t
+    ) || /\bplantas?\b/.test(t)
+  );
 }
 
 export function esConsultaDeSeguimiento(consulta: string): boolean {
@@ -561,6 +586,8 @@ export async function buscarPlantasParaTarjetas(
   const respuesta = respuestaAsistente?.trim() ?? "";
   if (!consultaActual && !respuesta) return [];
 
+  if (respuesta && respuestaRechazaTarjetasPlantas(respuesta)) return [];
+
   const idsDesde = (plantas: PlantaCatalogo[]) =>
     obtenerPlantasPorIds(plantas.map((p) => p.nombreComun.id_especie));
 
@@ -576,11 +603,14 @@ export async function buscarPlantasParaTarjetas(
     return idsDesde(mencionadasActual.slice(0, 3));
   }
 
-  if (!esConsultaDeSeguimiento(consultaActual)) {
+  if (esConsultaExplicitaPlanta(consultaActual)) {
     const porTexto = await buscarPlantasPorTexto(consultaActual, 2);
     if (porTexto.length > 0) {
       return idsDesde(porTexto.slice(0, 2));
     }
+  }
+
+  if (!esConsultaDeSeguimiento(consultaActual)) {
     return [];
   }
 
