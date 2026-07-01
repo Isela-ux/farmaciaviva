@@ -507,9 +507,24 @@ export function esPedidoRecomendacionPlantas(texto: string): boolean {
   );
 }
 
+export function esPreguntaSobreUsosPlanta(texto: string): boolean {
+  const t = normalizarEntrada(texto);
+  if (/\b(tengo|cargo|sufro|me duele|me siento|ultimamente me|me han estado)\b/.test(t)) {
+    return false;
+  }
+  return (
+    /\b(para que sirve|para qué sirve|para que malestares|para qué malestares|que malestares|qué malestares|que enfermedades|qué enfermedades|que padecimientos|qué padecimientos|que sintomas|qué síntomas|que sintomas|qué dolencias|que dolencias|usos medicinales|propiedades medicinales|beneficios medicinales|indicaciones medicinales)\b/.test(
+      t
+    ) ||
+    (/\b(sirve para|ayuda con|ayuda en|trata|util para|útil para)\b/.test(t) &&
+      /\b(malestar|malestares|enfermedad|padecimiento|sintoma|síntoma|dolor|dolencia)\b/.test(t))
+  );
+}
+
 export function esConsultaPlantaDirecta(texto: string): boolean {
   const t = normalizarEntrada(texto);
   if (esPedidoRecomendacionPlantas(texto)) return false;
+  if (esPreguntaSobreUsosPlanta(texto)) return true;
   if (
     /\b(para que sirve|para qué sirve|como se prepara|cómo se prepara|que es|qué es|nombre cientifico|nombre científico|planta llamada|busco la planta|buscame una planta)\b/.test(
       t
@@ -539,7 +554,7 @@ export function esConsultaPlantaDirecta(texto: string): boolean {
  */
 export function esExpresionDeMalestar(texto: string): boolean {
   const t = normalizarEntrada(texto);
-  if (!t || esConsultaPlantaDirecta(t)) return false;
+  if (!t || esConsultaPlantaDirecta(t) || esPreguntaSobreUsosPlanta(texto)) return false;
 
   for (const hijo of ARBOL_PADECIMIENTOS.hijos ?? []) {
     if (coincideConNodo(texto, hijo.id)) return true;
@@ -565,7 +580,6 @@ export function esExpresionDeMalestar(texto: string): boolean {
     "siento dolor",
     "dolor de",
     "dolor en",
-    "malestar",
     "me arde",
     "me pica",
     "nausea",
@@ -587,6 +601,8 @@ export function esExpresionDeMalestar(texto: string): boolean {
     "presento",
   ];
   if (patrones.some((p) => t.includes(p))) return true;
+
+  if (/\bmalestar\b/.test(t) && !/\bmalestares\b/.test(t)) return true;
 
   if (textoMencionaSintoma(texto)) return true;
   if (textoExpresaDolorOMalestar(texto)) return true;
@@ -657,6 +673,14 @@ export function esRespuestaSintomaEnTriaje(texto: string): boolean {
     return true;
   }
 
+  if (/\b(acompañad\w*|acompanad\w*|junto con|ademas de|además de)\b/.test(t) && t.split(/\s+/).length <= 22) {
+    return true;
+  }
+  if (/\b(con diarrea|con vomito|con vómito|o diarrea|o vomito|o vómito|y diarrea|y vomito|y vómito|diarrea y|vomito y|vómito y)\b/.test(t)) {
+    return true;
+  }
+  if (/^(no|si|sí|nop|noup|no pues|pues si|pues no)\b/.test(t) && t.split(/\s+/).length <= 18) return true;
+
   return false;
 }
 
@@ -667,9 +691,16 @@ export function esRespuestaTriaje(texto: string): boolean {
   if (esPedidoRecomendacionPlantas(texto)) return false;
   if (esRespuestaSintomaEnTriaje(texto)) return true;
 
+  const t = normalizarEntrada(texto);
+  if (t.length <= 120) {
+    if (/\b(acompañad\w*|acompanad\w*|con diarrea|con vomito|con vómito|o diarrea|o vomito|o vómito)\b/.test(t)) {
+      return true;
+    }
+    if (/^(no|si|sí|no pues|pues)\b/.test(t) && t.split(/\s+/).length <= 18) return true;
+  }
+
   if (padecimientoDesdeDescripcion(texto)) return false;
 
-  const t = normalizarEntrada(texto);
   if (t.length > 140) return false;
 
   if (

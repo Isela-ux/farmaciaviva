@@ -16,7 +16,6 @@ import {
   esConsultaPlantaDirecta,
   esExpresionDeMalestar,
   esIntencionSalirConsulta,
-  esNuevoMalestarDistinto,
   esRespuestaTriaje,
 } from "@/lib/arbol-padecimientos";
 import type { PlantaMedicoVirtual } from "@/types/database";
@@ -126,14 +125,6 @@ export function ChatAssistant({
         guia.fase === "fin" &&
         debeActivarGuiaConversacional(t) &&
         !esRespuestaTriaje(t)
-      ) {
-        guia.reiniciarGuia();
-        await guia.iniciarGuia(t);
-        return;
-      }
-      if (
-        guia.fase === "triaje" &&
-        esNuevoMalestarDistinto(t, guia.padecimiento ?? null)
       ) {
         guia.reiniciarGuia();
         await guia.iniciarGuia(t);
