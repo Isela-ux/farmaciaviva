@@ -488,8 +488,28 @@ export function mensajeBienvenidaGuia(): string {
   return `Gracias por contarme. **Primero te haré preguntas** para entender cómo te sientes; las plantas del catálogo las verás al final.`;
 }
 
+export function esPedidoRecomendacionPlantas(texto: string): boolean {
+  const t = normalizarEntrada(texto);
+  if (
+    /\b(recomiend\w*|sugier\w*|que plantas|qué plantas|cuales plantas|cuáles plantas|que puedo tomar|qué puedo tomar|que me sirve|qué me sirve|plantas para|que consumir|qué consumir)\b/.test(
+      t
+    ) &&
+    /\b(para|tomar|consumir|ayude|ayudar|eso|este caso|mi caso|malestar|sintoma|síntoma|padecimiento|tengo|duele|duelen|con eso|me ayude)\b/.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  return (
+    /\b(ya dime las plantas|dame plantas|muestrame plantas|muéstrame plantas|quiero plantas|necesito plantas|pasar a plantas|recomendacion de plantas|recomendación de plantas)\b/.test(
+      t
+    ) || /\bque plantas me recomiend\w*\b/.test(t)
+  );
+}
+
 export function esConsultaPlantaDirecta(texto: string): boolean {
   const t = normalizarEntrada(texto);
+  if (esPedidoRecomendacionPlantas(texto)) return false;
   if (
     /\b(para que sirve|para qué sirve|como se prepara|cómo se prepara|que es|qué es|nombre cientifico|nombre científico|planta llamada|busco la planta|buscame una planta)\b/.test(
       t
@@ -504,7 +524,10 @@ export function esConsultaPlantaDirecta(texto: string): boolean {
   ) {
     return true;
   }
-  if (/\b(plantas?|cuales plantas|cuáles plantas|qué plantas|que plantas)\b/.test(t)) {
+  if (
+    /\b(cuales plantas|cuáles plantas|qué plantas|que plantas)\b/.test(t) &&
+    !/\b(recomiend|sugier|consumir|tomar|para eso|para mi|ayude)\b/.test(t)
+  ) {
     return true;
   }
   return false;

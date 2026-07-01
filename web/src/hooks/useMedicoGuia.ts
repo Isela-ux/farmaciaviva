@@ -2,6 +2,8 @@
 
 import { useCallback, useState } from "react";
 import {
+  esConsultaPlantaDirecta,
+  esPedidoRecomendacionPlantas,
   interpretarEntradaGuia,
   type PadecimientoSeleccionado,
 } from "@/lib/arbol-padecimientos";
@@ -338,12 +340,39 @@ export function useMedicoGuia() {
 
       agregarMensaje({ role: "user", content: t });
 
+      if (
+        (fase === "triaje" || fase === "fin") &&
+        esPedidoRecomendacionPlantas(t) &&
+        padecimiento
+      ) {
+        const notas = [notasTriaje, `Paciente solicita recomendación de plantas: ${t}`]
+          .filter(Boolean)
+          .join("\n");
+        await generarRecomendacion(padecimiento, notas);
+        return true;
+      }
+
+      if (fase === "triaje" && esConsultaPlantaDirecta(t)) {
+        await procesarConsultaPlanta(t);
+        return true;
+      }
+
       if (fase === "arbol") await procesarArbol(t);
       else if (fase === "triaje") await procesarTriaje(t);
       else if (fase === "fin") await procesarConsultaPlanta(t);
       return true;
     },
-    [cargandoGuia, fase, agregarMensaje, procesarArbol, procesarTriaje, procesarConsultaPlanta]
+    [
+      cargandoGuia,
+      fase,
+      padecimiento,
+      notasTriaje,
+      agregarMensaje,
+      procesarArbol,
+      procesarTriaje,
+      procesarConsultaPlanta,
+      generarRecomendacion,
+    ]
   );
 
   const reiniciarGuia = useCallback(() => {

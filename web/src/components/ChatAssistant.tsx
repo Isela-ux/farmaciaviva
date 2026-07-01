@@ -121,10 +121,14 @@ export function ChatAssistant({
       return;
     }
 
-    if (guia.enFlujoGuia || guia.fase === "triaje" || guia.fase === "arbol") {
-      if (esConsultaPlantaDirecta(t)) {
-        guia.salirAChatLibre();
-        void sendMessage({ text: t });
+    if (guia.enFlujoGuia || guia.fase === "triaje" || guia.fase === "arbol" || guia.fase === "fin") {
+      if (
+        guia.fase === "fin" &&
+        debeActivarGuiaConversacional(t) &&
+        !esRespuestaTriaje(t)
+      ) {
+        guia.reiniciarGuia();
+        await guia.iniciarGuia(t);
         return;
       }
       if (
@@ -133,21 +137,6 @@ export function ChatAssistant({
       ) {
         guia.reiniciarGuia();
         await guia.iniciarGuia(t);
-        return;
-      }
-      await guia.enviarGuia(t);
-      return;
-    }
-
-    if (guia.fase === "fin") {
-      if (debeActivarGuiaConversacional(t) && !esRespuestaTriaje(t)) {
-        guia.reiniciarGuia();
-        await guia.iniciarGuia(t);
-        return;
-      }
-      if (esConsultaPlantaDirecta(t)) {
-        guia.salirAChatLibre();
-        void sendMessage({ text: t });
         return;
       }
       await guia.enviarGuia(t);
