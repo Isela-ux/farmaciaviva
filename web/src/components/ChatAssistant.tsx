@@ -445,7 +445,7 @@ export function ChatAssistant({
             onChange={(e) => setInput(e.target.value)}
             placeholder={
               guia.enFlujoGuia || guia.fase === "triaje" || guia.fase === "arbol"
-                ? "Responde al especialista, o escribe otro malestar…"
+                ? "Responde al especialista (ej.: dolor abdominal, desde ayer)…"
                 : guia.fase === "fin"
                   ? "Pregunta por una planta o escribe un nuevo malestar…"
                   : "Ej.: Me duele la nariz · ¿Para qué sirve el achiote?"

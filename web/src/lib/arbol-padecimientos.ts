@@ -625,11 +625,49 @@ export function esIntencionSalirConsulta(texto: string): boolean {
   );
 }
 
+/** Respuesta al triaje que nombra zona o tipo de dolor (ej. «dolor abdominal», «de cabeza también»). */
+export function esRespuestaSintomaEnTriaje(texto: string): boolean {
+  const t = normalizarEntrada(texto).trim();
+  if (!t || t.length > 90) return false;
+
+  if (/^dolor\b/.test(t) && t.split(/\s+/).length <= 6) return true;
+
+  const respuestasCortas = [
+    "abdominal",
+    "estomago",
+    "estómago",
+    "cabeza",
+    "garganta",
+    "espalda",
+    "pecho",
+    "menstrual",
+    "ocular",
+    "ojos",
+    "oido",
+    "oído",
+    "nariz",
+    "lumbar",
+    "digestivo",
+  ];
+  if (respuestasCortas.includes(t)) return true;
+  if (respuestasCortas.some((z) => t === `dolor ${z}` || t === `de ${z}` || t === `en ${z}`)) return true;
+
+  if (/^(en el|en la|en los|en las|del|de la|de)\b/.test(t) && t.split(/\s+/).length <= 8) return true;
+  if (/\b(tambien|también|ademas|además|otro|otra|solo|solamente)\b/.test(t) && t.split(/\s+/).length <= 12) {
+    return true;
+  }
+
+  return false;
+}
+
 /** Respuesta breve al triaje (duración, intensidad, sí/no) — no un malestar nuevo. */
 export function esRespuestaTriaje(texto: string): boolean {
   if (esIntencionSalirConsulta(texto)) return false;
-  if (padecimientoDesdeDescripcion(texto)) return false;
   if (esConsultaPlantaDirecta(texto)) return false;
+  if (esPedidoRecomendacionPlantas(texto)) return false;
+  if (esRespuestaSintomaEnTriaje(texto)) return true;
+
+  if (padecimientoDesdeDescripcion(texto)) return false;
 
   const t = normalizarEntrada(texto);
   if (t.length > 140) return false;
@@ -650,13 +688,21 @@ export function esRespuestaTriaje(texto: string): boolean {
   return false;
 }
 
-/** Malestar distinto al padecimiento activo en triaje. */
+/** Malestar distinto al padecimiento activo — solo si el paciente inicia consulta nueva explícita. */
 export function esNuevoMalestarDistinto(
   texto: string,
   padecimientoActual: PadecimientoSeleccionado | null
 ): boolean {
   if (!padecimientoActual) return false;
+  if (esRespuestaTriaje(texto) || esRespuestaSintomaEnTriaje(texto)) return false;
+  if (esIntencionSalirConsulta(texto)) return false;
+
+  const t = normalizarEntrada(texto);
+  const iniciaConsultaNueva =
+    /\b(tengo|cargo|sufro|padezco|ultimamente|desde hace|me han estado|me duele mucho|me siento)\b/.test(t);
+  if (!iniciaConsultaNueva) return false;
+
   const nuevo = padecimientoDesdeDescripcion(texto);
   if (nuevo) return nuevo.id !== padecimientoActual.id;
-  return esExpresionDeMalestar(texto) && !esRespuestaTriaje(texto);
+  return esExpresionDeMalestar(texto);
 }
