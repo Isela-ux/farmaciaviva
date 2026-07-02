@@ -87,3 +87,39 @@ Usa esta guía para **renombrar y organizar** las capturas que ya tomaste y ver 
 4. Supabase → B1–B3  
 5. Terminal local → `npm run rag:pruebas` + `npm run build` → B11, S5-B1  
 6. `/asistente` vacío → S5-A1; scroll disclaimer → S5-A5  
+
+---
+
+## Semana 7 — Despliegue y producción
+
+**URL:** https://project-gzlfs.vercel.app  
+**Docs:** [`docs/SEMANA_7_ENTREGABLES.md`](../docs/SEMANA_7_ENTREGABLES.md)
+
+### Alumno A (`evidencia/semana7/alumno-a/`)
+
+- [ ] S7-A1 — Home/catálogo con **URL de Vercel visible** en la barra  
+- [ ] S7-A2 — `/catalogo` en producción (grid + contador)  
+- [ ] S7-A3 — Ficha Ajonjolí `/planta/283` con imagen cargada  
+- [ ] S7-A4 — Asistente: triaje (síntoma nasal, sin tarjetas al inicio)  
+- [ ] S7-A5 — Asistente: recomendación final con tarjetas de plantas  
+- [ ] S7-A6 — Flujo ficha → botón Médico Virtual → `?planta=`  
+- [ ] S7-A7 — Foto sesión validación *(compartida en `semana7/sesion_validacion.jpg`)*  
+
+### Alumno B (`evidencia/semana7/alumno-b/`)
+
+- [ ] S7-B1 — Vercel Environment Variables (nombres, sin valores)  
+- [ ] S7-B2 — Deployments estado **Ready** + commit reciente  
+- [ ] S7-B3 — Terminal `npm run prod:validar` → todas OK  
+- [ ] S7-B4 — Terminal `npm run rag:pruebas` → **15/15 OK**  
+- [ ] S7-B5 — Supabase: `plant_embeddings` 857 filas  
+- [ ] S7-B6 — DevTools Network: POST `/api/chat` → 200 (stream)  
+- [ ] S7-B7 — Foto sesión validación  
+
+### Sesión rápida S7 (~15 min)
+
+1. `project-gzlfs.vercel.app` con URL visible → S7-A1  
+2. Catálogo + ficha 283 → S7-A2, S7-A3  
+3. Asistente triaje + recomendación → S7-A4, S7-A5  
+4. Vercel env + deploy → S7-B1, S7-B2  
+5. `npm run prod:validar` + `npm run rag:pruebas` → S7-B3, S7-B4  
+6. Foto equipo → `semana7/sesion_validacion.jpg`  

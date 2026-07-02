@@ -1,0 +1,52 @@
+{
+  "fecha": "2026-07-02T01:33:36.556Z",
+  "url": "https://project-gzlfs.vercel.app",
+  "resumen": "9/9 pruebas OK",
+  "pruebas": [
+    {
+      "nombre": "GET /",
+      "ok": true,
+      "detalle": "HTTP 200 (37214 bytes)"
+    },
+    {
+      "nombre": "GET /catalogo",
+      "ok": true,
+      "detalle": "HTTP 200 (163274 bytes)"
+    },
+    {
+      "nombre": "GET /planta/283",
+      "ok": true,
+      "detalle": "HTTP 200 (171029 bytes)"
+    },
+    {
+      "nombre": "GET /asistente",
+      "ok": true,
+      "detalle": "HTTP 200 (15511 bytes)"
+    },
+    {
+      "nombre": "Imagen ficha planta",
+      "ok": true,
+      "detalle": "HEAD 200 — https://kkdotmmurqpkrpvrmenr.supabase.co/storage/v1/object/public/plantas/Ajonjo…"
+    },
+    {
+      "nombre": "POST /api/chat (vacío)",
+      "ok": true,
+      "detalle": "HTTP 400 — validación correcta"
+    },
+    {
+      "nombre": "POST /api/chat (RAG)",
+      "ok": true,
+      "detalle": "Stream 200 con respuesta"
+    },
+    {
+      "nombre": "POST /api/chat/guia (triaje)",
+      "ok": true,
+      "detalle": "Respuesta 195 caracteres"
+    },
+    {
+      "nombre": "Supabase (conexión)",
+      "ok": true,
+      "detalle": "REST OK — proyecto kkdotmmurqpkrpvrmenr"
+    }
+  ]
+}

@@ -6,12 +6,18 @@ import type { UIMessage } from "ai";
 import { useRef, useEffect, useState, useMemo } from "react";
 import Link from "next/link";
 import { AssistantMessage } from "@/components/AssistantMessage";
-import { MedicoVirtualPlantas } from "@/components/MedicoVirtualPlantas";
 import {
-  etiquetaAgenteGuia,
-  etiquetaPasoGuia,
-  useMedicoGuia,
-} from "@/hooks/useMedicoGuia";
+  MedicoVirtualBubbleAsistente,
+  MedicoVirtualBubbleUsuario,
+} from "@/components/MedicoVirtualBubble";
+import { MedicoVirtualPlantas } from "@/components/MedicoVirtualPlantas";
+import { MedicoVirtualProgreso } from "@/components/MedicoVirtualProgreso";
+import { useMedicoGuia } from "@/hooks/useMedicoGuia";
+import {
+  mensajeCargando,
+  placeholderEntrada,
+  progresoVisual,
+} from "@/lib/medico-virtual-presentacion";
 import {
   esConsultaPlantaDirecta,
   esExpresionDeMalestar,
@@ -73,7 +79,7 @@ export function ChatAssistant({
 
   const cargandoChat = status === "submitted" || status === "streaming";
   const cargando = cargandoChat || guia.cargandoGuia;
-  const pasoGuia = etiquetaPasoGuia(guia.fase, guia.ruta);
+  const progreso = guia.activa ? progresoVisual(guia.fase, guia.ruta) : null;
 
   useEffect(() => {
     finRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -164,60 +170,63 @@ export function ChatAssistant({
 
   return (
     <div className="flex min-h-[calc(100dvh-3.25rem)] flex-1 flex-col overflow-hidden bg-card-white">
-      <div className="relative shrink-0 border-b border-sun-gold/30 bg-gradient-to-br from-academic-navy via-forest to-leaf-bright px-6 py-5 text-white lg:px-10">
-        <div className="mx-auto flex max-w-6xl items-start gap-3">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-sun-gold/20 text-xl ring-2 ring-sun-gold/40">
-            🩺
+      <div className="relative shrink-0 overflow-hidden border-b border-sun-gold/30 bg-gradient-to-br from-academic-navy via-forest to-leaf-bright px-6 py-6 text-white lg:px-10">
+        <div
+          className="pointer-events-none absolute -right-8 -top-8 h-40 w-40 rounded-full bg-sun-gold/10 blur-2xl"
+          aria-hidden
+        />
+        <div
+          className="pointer-events-none absolute -bottom-6 left-1/4 h-28 w-28 rounded-full bg-mint-light/10 blur-xl"
+          aria-hidden
+        />
+        <div className="relative mx-auto flex max-w-6xl items-start gap-4">
+          <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl shadow-lg ring-2 ring-sun-gold/35 backdrop-blur-sm">
+            🌿
           </span>
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-sun-gold">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-sun-gold">
               Farmacia Viva · VIC 2026
             </p>
-            <h1 className="mt-0.5 text-xl font-semibold tracking-tight sm:text-2xl">
-              Médico Virtual
+            <h1 className="mt-1 text-2xl font-bold tracking-tight sm:text-3xl">
+              Tu guía en plantas medicinales
             </h1>
-            <p className="mt-1 text-sm text-mint/90">
-              Cuéntame qué sientes (te haré preguntas) o pregunta directamente por una planta del
-              catálogo.
+            <p className="mt-2 max-w-xl text-sm leading-relaxed text-mint/95">
+              Platícame cómo te sientes o pregúntame por cualquier planta del catálogo. Te acompaño
+              paso a paso, con calma.
             </p>
           </div>
         </div>
-        <div className="mx-auto mt-4 h-1 w-20 max-w-6xl rounded-full bg-gradient-to-r from-sun-gold to-sun-amber" />
+        <div className="relative mx-auto mt-5 flex max-w-6xl gap-2">
+          <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium backdrop-blur-sm">
+            💬 Conversación natural
+          </span>
+          <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-medium backdrop-blur-sm">
+            🌱 284 especies
+          </span>
+        </div>
       </div>
 
       <div className="mx-auto flex w-full max-w-6xl flex-1 flex-col overflow-hidden px-4 sm:px-6 lg:px-10">
-        {pasoGuia && guia.activa && (
-          <p className="shrink-0 border-b border-forest/8 bg-gradient-to-r from-cream to-white py-2.5 text-center text-xs font-semibold uppercase tracking-wide text-leaf-bright">
-            {pasoGuia}
-            {guia.ruta.length > 0 && (
-              <span className="mt-0.5 block font-normal normal-case tracking-normal text-earth">
-                {guia.ruta.join(" → ")}
-              </span>
-            )}
-          </p>
-        )}
+        {progreso && <MedicoVirtualProgreso progreso={progreso} />}
 
         {guia.activa && guia.fase !== "recomendacion" && (
-          <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-b border-sun-gold/25 bg-cream/80 px-4 py-2.5">
+          <div className="flex shrink-0 flex-wrap items-center justify-center gap-2 border-b border-forest/6 bg-white/90 px-4 py-2.5 backdrop-blur-sm">
             <button
               type="button"
               onClick={empezarNuevoMalestar}
               disabled={cargando}
-              className="rounded-lg border-2 border-forest/20 bg-white px-3 py-1.5 text-xs font-semibold text-forest outline-none transition hover:border-sun-gold hover:bg-cream focus-visible:ring-2 focus-visible:ring-sun-gold/50 disabled:opacity-50 sm:text-sm"
+              className="rounded-full border border-forest/15 bg-cream/60 px-4 py-2 text-xs font-semibold text-forest outline-none transition hover:border-sun-gold/50 hover:bg-cream focus-visible:ring-2 focus-visible:ring-sun-gold/50 disabled:opacity-50 sm:text-sm"
             >
-              🔄 Nuevo malestar
+              ✨ Empezar de nuevo
             </button>
             <button
               type="button"
               onClick={salirABuscarPlanta}
               disabled={cargando}
-              className="rounded-lg border-2 border-leaf-bright/40 bg-white px-3 py-1.5 text-xs font-semibold text-leaf-bright outline-none transition hover:border-leaf-bright hover:bg-mint-light/30 focus-visible:ring-2 focus-visible:ring-sun-gold/50 disabled:opacity-50 sm:text-sm"
+              className="rounded-full border border-leaf-bright/30 bg-mint-light/30 px-4 py-2 text-xs font-semibold text-leaf-bright outline-none transition hover:border-leaf-bright hover:bg-mint-light/50 focus-visible:ring-2 focus-visible:ring-sun-gold/50 disabled:opacity-50 sm:text-sm"
             >
-              🌿 Buscar planta
+              🌿 Explorar plantas
             </button>
-            <span className="w-full text-center text-[10px] text-earth-soft sm:w-auto sm:text-xs">
-              Usa estos botones para cambiar de consulta sin recargar la página
-            </span>
           </div>
         )}
 
@@ -251,32 +260,33 @@ export function ChatAssistant({
               )}
 
               {!plantaInicial && !nombrePlanta && (
-                <div className="rounded-2xl border-2 border-sun-gold/50 bg-gradient-to-br from-cream via-white to-mint-light/30 p-5 text-center shadow-sm">
-                  <p className="text-sm font-medium text-forest">¿Qué sientes?</p>
-                  <p className="mt-1 text-xs text-earth-soft">
-                    Cuéntame con tus palabras — no hace falta decir «tengo dolor»
+                <div className="overflow-hidden rounded-3xl border border-sun-gold/30 bg-gradient-to-br from-white via-cream/50 to-mint-light/25 p-6 text-center shadow-lg shadow-forest/5">
+                  <p className="text-lg font-semibold text-forest">Hola, ¿en qué te acompaño hoy?</p>
+                  <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-earth-soft">
+                    Puedes contarme cómo te sientes o preguntarme por una planta. Sin formularios raros
+                    — solo conversación.
                   </p>
-                  <div className="mt-4 flex flex-col items-center gap-2 sm:flex-row sm:justify-center">
+                  <div className="mt-5 flex flex-col items-stretch gap-2 sm:flex-row sm:justify-center">
                     <button
                       type="button"
                       onClick={() => void enviar("Me siento un poco mal")}
-                      className="w-full max-w-xs rounded-xl border-2 border-sun-gold/60 bg-cream px-6 py-3 text-sm font-semibold text-forest shadow-sm outline-none transition hover:bg-sun-gold/15 focus-visible:ring-2 focus-visible:ring-sun-gold/50 sm:w-auto"
+                      className="rounded-2xl border border-forest/15 bg-white px-6 py-3.5 text-sm font-semibold text-forest shadow-sm outline-none transition hover:border-sun-gold/40 hover:bg-cream focus-visible:ring-2 focus-visible:ring-sun-gold/50"
                     >
-                      Me siento un poco mal
+                      😔 No me siento muy bien
                     </button>
                     <button
                       type="button"
                       onClick={() => void enviar("Tengo dolor")}
-                      className="w-full max-w-xs rounded-xl bg-gradient-to-r from-forest to-leaf-bright px-6 py-3 text-sm font-bold text-white shadow-lg outline-none transition hover:from-leaf-bright hover:to-hero-green focus-visible:ring-2 focus-visible:ring-sun-gold/50 sm:w-auto"
+                      className="rounded-2xl bg-gradient-to-r from-forest to-leaf-bright px-6 py-3.5 text-sm font-bold text-white shadow-lg shadow-forest/20 outline-none transition hover:brightness-105 focus-visible:ring-2 focus-visible:ring-sun-gold/50"
                     >
-                      Tengo dolor
+                      💬 Cuéntame — tengo molestias
                     </button>
                   </div>
                 </div>
               )}
 
-              <p className="rounded-lg border border-forest/10 bg-white/80 px-3 py-2 text-sm text-earth-soft">
-                También puedes preguntar por usos, propiedades o preparación de una planta concreta.
+              <p className="rounded-2xl border border-forest/8 bg-white/90 px-4 py-3 text-sm text-earth-soft shadow-sm">
+                También puedes ir directo al grano: usos, preparación o propiedades de una planta.
               </p>
               <div className="flex flex-wrap gap-2">
                 {sugerencias.map((s) => (
@@ -284,7 +294,7 @@ export function ChatAssistant({
                     key={s}
                     type="button"
                     onClick={() => void enviar(s)}
-                    className="rounded-lg border border-sun-gold/40 bg-white px-3 py-2 text-xs font-medium text-forest shadow-sm outline-none transition hover:border-sun-gold hover:bg-cream hover:shadow focus-visible:ring-2 focus-visible:ring-sun-gold/50"
+                    className="rounded-full border border-sun-gold/35 bg-white px-4 py-2 text-xs font-medium text-forest shadow-sm outline-none transition hover:border-sun-gold hover:bg-cream hover:shadow focus-visible:ring-2 focus-visible:ring-sun-gold/50"
                   >
                     {s}
                   </button>
@@ -294,7 +304,6 @@ export function ChatAssistant({
           )}
 
           {guia.mensajes.map((m, idx) => {
-            const agente = etiquetaAgenteGuia(m.agente);
             const esUltimo = m.role === "assistant" && idx === guia.mensajes.length - 1;
             const opciones =
               esUltimo && guia.fase === "arbol" && !cargando ? m.opciones : undefined;
@@ -305,41 +314,42 @@ export function ChatAssistant({
                 className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
               >
                 {m.role === "user" ? (
-                  <div className="max-w-[75%] rounded-2xl rounded-br-md border border-leaf-bright/30 bg-gradient-to-br from-forest to-leaf-bright px-4 py-2.5 text-sm text-white shadow-md lg:max-w-[60%]">
+                  <MedicoVirtualBubbleUsuario>
                     <p className="whitespace-pre-wrap">{m.content}</p>
-                  </div>
+                  </MedicoVirtualBubbleUsuario>
                 ) : (
-                  <div className="w-full max-w-4xl space-y-2 rounded-2xl rounded-bl-md border border-forest/10 border-l-4 border-l-sun-gold bg-white p-4 text-sm text-forest shadow-sm">
-                    {agente && (
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-leaf-bright">
-                        {agente}
-                      </p>
-                    )}
+                  <MedicoVirtualBubbleAsistente
+                    agente={m.agente}
+                    footer={
+                      <>
+                        {m.plantas && m.plantas.length > 0 && (
+                          <div className="flex justify-center border-t border-forest/6 pt-4">
+                            <MedicoVirtualPlantas plantas={m.plantas.slice(0, 3)} />
+                          </div>
+                        )}
+                        {opciones && opciones.length > 0 && (
+                          <div className="mt-3 grid gap-2 border-t border-forest/6 pt-4 sm:grid-cols-2">
+                            <p className="sm:col-span-2 text-xs font-medium text-earth-soft">
+                              ¿Te refieres a alguna de estas?
+                            </p>
+                            {opciones.map((op) => (
+                              <button
+                                key={op.id}
+                                type="button"
+                                onClick={() => void enviar(op.label)}
+                                disabled={cargando}
+                                className="rounded-xl border border-sun-gold/40 bg-white/80 px-4 py-3 text-left text-sm font-medium text-forest outline-none transition hover:border-sun-gold hover:bg-cream focus-visible:ring-2 focus-visible:ring-sun-gold/50"
+                              >
+                                {op.label}
+                              </button>
+                            ))}
+                          </div>
+                        )}
+                      </>
+                    }
+                  >
                     <AssistantMessage texto={m.content} />
-                    {m.plantas && m.plantas.length > 0 && (
-                      <div className="flex justify-center pt-3">
-                        <MedicoVirtualPlantas plantas={m.plantas.slice(0, 3)} />
-                      </div>
-                    )}
-                    {opciones && opciones.length > 0 && (
-                      <div className="mt-4 grid gap-2 sm:grid-cols-2">
-                        <p className="sm:col-span-2 text-xs font-semibold uppercase tracking-wide text-sun-amber">
-                          Elige una opción o escríbela abajo:
-                        </p>
-                        {opciones.map((op) => (
-                          <button
-                            key={op.id}
-                            type="button"
-                            onClick={() => void enviar(op.label)}
-                            disabled={cargando}
-                            className="rounded-xl border-2 border-sun-gold/60 bg-cream px-4 py-3 text-sm font-semibold text-forest outline-none transition hover:border-sun-gold hover:bg-sun-gold/15 focus-visible:ring-2 focus-visible:ring-sun-gold/50"
-                          >
-                            {op.label}
-                          </button>
-                        ))}
-                      </div>
-                    )}
-                  </div>
+                  </MedicoVirtualBubbleAsistente>
                 )}
               </div>
             );
@@ -354,18 +364,22 @@ export function ChatAssistant({
                   className={`flex ${m.role === "user" ? "justify-end" : "justify-start"}`}
                 >
                   {m.role === "user" ? (
-                    <div className="max-w-[75%] rounded-2xl rounded-br-md border border-leaf-bright/30 bg-gradient-to-br from-forest to-leaf-bright px-4 py-2.5 text-sm text-white shadow-md lg:max-w-[60%]">
+                    <MedicoVirtualBubbleUsuario>
                       <p className="whitespace-pre-wrap">{textoMensaje(m)}</p>
-                    </div>
+                    </MedicoVirtualBubbleUsuario>
                   ) : (
-                    <div className="w-full max-w-4xl space-y-3 rounded-2xl rounded-bl-md border border-forest/10 border-l-4 border-l-sun-gold bg-white p-4 text-sm text-forest shadow-sm">
+                    <MedicoVirtualBubbleAsistente
+                      agente="triaje"
+                      footer={
+                        plantas.length > 0 ? (
+                          <div className="flex justify-center border-t border-forest/6 pt-4">
+                            <MedicoVirtualPlantas plantas={plantas} />
+                          </div>
+                        ) : undefined
+                      }
+                    >
                       <AssistantMessage texto={textoMensaje(m)} />
-                      {plantas.length > 0 && (
-                        <div className="flex justify-center pt-1">
-                          <MedicoVirtualPlantas plantas={plantas} />
-                        </div>
-                      )}
-                    </div>
+                    </MedicoVirtualBubbleAsistente>
                   )}
                 </div>
               );
@@ -373,15 +387,18 @@ export function ChatAssistant({
 
           {cargando && (
             <div className="flex justify-start" role="status" aria-live="polite">
-              <div className="flex items-center gap-2 rounded-2xl border border-forest/10 bg-white px-4 py-2.5 text-sm text-earth-soft shadow-sm">
-                <span className="inline-flex gap-1">
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sun-gold [animation-delay:0ms]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sun-gold [animation-delay:150ms]" />
-                  <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-sun-gold [animation-delay:300ms]" />
+              <div className="flex items-center gap-3 rounded-2xl border border-forest/8 bg-white/95 px-4 py-3 text-sm text-earth-soft shadow-sm">
+                <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-mint-light/40 text-lg">
+                  🌿
                 </span>
-                {guia.enFlujoGuia || guia.fase === "arbol" || guia.fase === "triaje"
-                  ? "El especialista está preparando tu siguiente pregunta…"
-                  : "El Médico Virtual está consultando el catálogo…"}
+                <span className="inline-flex items-center gap-2">
+                  <span className="inline-flex gap-1">
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-leaf-bright [animation-delay:0ms]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-leaf-bright [animation-delay:150ms]" />
+                    <span className="h-1.5 w-1.5 animate-bounce rounded-full bg-leaf-bright [animation-delay:300ms]" />
+                  </span>
+                  {mensajeCargando(guia.fase, guia.enFlujoGuia)}
+                </span>
               </div>
             </div>
           )}
@@ -411,8 +428,8 @@ export function ChatAssistant({
           )}
 
           {guia.fase === "fin" && (
-            <p className="text-center text-xs text-earth-soft">
-              También puedes usar los botones de arriba para un nuevo malestar o buscar otra planta.
+            <p className="rounded-2xl border border-leaf-bright/20 bg-mint-light/25 px-4 py-3 text-center text-xs text-forest">
+              ¿Quieres seguir explorando? Usa los botones de arriba o escribe aquí abajo.
             </p>
           )}
 
@@ -434,24 +451,18 @@ export function ChatAssistant({
             id="medico-virtual-consulta"
             value={input}
             onChange={(e) => setInput(e.target.value)}
-            placeholder={
-              guia.enFlujoGuia || guia.fase === "triaje" || guia.fase === "arbol"
-                ? "Responde al especialista (ej.: dolor abdominal, desde ayer)…"
-                : guia.fase === "fin"
-                  ? "Pregunta por una planta o escribe un nuevo malestar…"
-                  : "Ej.: Me duele la nariz · ¿Para qué sirve el achiote?"
-            }
+            placeholder={placeholderEntrada(guia.fase, guia.enFlujoGuia)}
             disabled={cargando || guia.fase === "recomendacion"}
             aria-label="Escribe tu consulta"
-            className="flex-1 rounded-xl border-2 border-forest/15 bg-botanical px-4 py-3 text-sm outline-none transition focus-visible:border-sun-gold/50 focus-visible:ring-2 focus-visible:ring-sun-gold/20 disabled:opacity-60"
+            className="flex-1 rounded-2xl border border-forest/12 bg-botanical px-4 py-3 text-sm outline-none transition focus-visible:border-sun-gold/50 focus-visible:ring-2 focus-visible:ring-sun-gold/20 disabled:opacity-60"
           />
           <button
             type="submit"
             disabled={cargando || !input.trim() || guia.fase === "recomendacion"}
             aria-label="Enviar consulta"
-            className="rounded-xl bg-gradient-to-r from-forest to-leaf-bright px-6 py-3 text-sm font-semibold text-white shadow-md outline-none transition hover:from-leaf-bright hover:to-hero-green focus-visible:ring-2 focus-visible:ring-sun-gold/50 focus-visible:ring-offset-2 disabled:opacity-50"
+            className="rounded-full bg-gradient-to-r from-forest to-leaf-bright px-6 py-3 text-sm font-semibold text-white shadow-md outline-none transition hover:brightness-105 focus-visible:ring-2 focus-visible:ring-sun-gold/50 focus-visible:ring-offset-2 disabled:opacity-50"
           >
-            Enviar
+            Enviar ✨
           </button>
         </form>
 

@@ -18,7 +18,7 @@ export function MedicoVirtualPlantas({ plantas }: { plantas: PlantaMedicoVirtual
         >
           <div className="border-b border-sun-gold/20 bg-gradient-to-r from-forest-deep/5 to-sun-gold/5 px-3 py-1.5 text-center">
             <p className="text-[10px] font-semibold uppercase tracking-widest text-leaf-bright">
-              Especie consultada
+              Del catálogo
             </p>
           </div>
           <div className="relative aspect-[4/3] w-full bg-gradient-to-b from-mint-light/40 to-white">
