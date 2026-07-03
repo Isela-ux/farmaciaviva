@@ -268,6 +268,14 @@ function ejecutarEscenario(
       if (esc.esperado.sanitizado !== undefined && r.sanitizado !== esc.esperado.sanitizado) {
         return Promise.resolve({ pasa: false, detalle: `sanitizado=${r.sanitizado}` });
       }
+      const debeContener = (esc.esperado.textoContiene as string[]) ?? [];
+      const faltaTexto = debeContener.filter((n) => !r.texto.includes(n));
+      if (faltaTexto.length) {
+        return Promise.resolve({ pasa: false, detalle: `texto sin: ${faltaTexto.join(", ")}` });
+      }
+      if (r.texto.includes("****")) {
+        return Promise.resolve({ pasa: false, detalle: "texto con asteriscos vacíos" });
+      }
       return Promise.resolve({
         pasa: true,
         detalle: r.sanitizado ? "sanitizado" : "sin cambios",

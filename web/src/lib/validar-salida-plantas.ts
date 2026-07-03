@@ -54,48 +54,65 @@ export function detectarMencionesPlantasSync(
   return resultados;
 }
 
-function escaparRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function filtrarMencionesInvalidas(
+  mencionesCatalogo: Awaited<ReturnType<typeof buscarPlantasMencionadasEnTexto>>,
+  permitidasIds: Set<number>,
+  plantasPermitidas: PlantaMedicoVirtual[],
+  texto: string
+): { mencionesValidas: string[]; mencionesInvalidas: string[] } {
+  const mencionesValidas: string[] = [];
+  const mencionesInvalidas: string[] = [];
+
+  for (const m of mencionesCatalogo) {
+    const nombre = m.nombreComun.nombre_comun;
+    if (permitidasIds.has(m.nombreComun.id_especie)) {
+      if (!mencionesValidas.includes(nombre)) mencionesValidas.push(nombre);
+      continue;
+    }
+    if (mencionInvalidaProtegida(nombre, plantasPermitidas, texto)) continue;
+    if (!mencionesInvalidas.includes(nombre)) mencionesInvalidas.push(nombre);
+  }
+
+  return { mencionesValidas, mencionesInvalidas };
 }
 
-function limpiarTextoTrasReemplazo(texto: string): string {
-  return texto
-    .replace(/-\s*$/gm, "")
-    .replace(/[ \t]{2,}/g, " ")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
+function notaAvisoMencionesInvalidas(mencionesInvalidas: string[]): string {
+  if (!mencionesInvalidas.length) return "";
+  return `\n\n> **Aviso:** Algunas especies mencionadas no están en el contexto validado de esta consulta (${mencionesInvalidas.join(", ")}). Las tarjetas muestran solo plantas confirmadas del catálogo.`;
 }
 
-function notaPlantasPermitidas(plantas: PlantaMedicoVirtual[]): string {
-  const nombres = plantas.map((p) => p.nombreComun).filter(Boolean);
-  if (!nombres.length) return "";
-  return `\n\n> **Nota:** Las plantas del catálogo consideradas para esta consulta son: **${nombres.join(", ")}**.`;
+/** ¿La mención inválida es parte (o padre) de una planta permitida en el texto? */
+function mencionInvalidaProtegida(
+  nombreInvalido: string,
+  plantasPermitidas: PlantaMedicoVirtual[],
+  texto: string
+): boolean {
+  const inv = normalizarTextoBusqueda(nombreInvalido);
+  const textoNorm = normalizarTextoBusqueda(texto);
+  if (!inv || !textoNorm) return false;
+
+  for (const p of plantasPermitidas) {
+    const perm = normalizarTextoBusqueda(p.nombreComun);
+    if (!perm || !textoNorm.includes(perm)) continue;
+    if (perm.includes(inv) || inv.includes(perm)) return true;
+  }
+  return false;
 }
 
 /**
- * Elimina menciones de plantas fuera del contexto RAG y añade nota con las permitidas.
+ * No modifica el texto del LLM (evita dejar **** al borrar subcadenas como «Limón»).
+ * Solo añade aviso si hubo menciones fuera de contexto.
  */
 export function sanitizarTextoPlantas(
   texto: string,
-  plantasPermitidas: PlantaMedicoVirtual[],
+  _plantasPermitidas: PlantaMedicoVirtual[],
   mencionesInvalidas: string[]
 ): string {
   if (!mencionesInvalidas.length) return texto;
 
-  let out = texto;
-  const invalidas = [...new Set(mencionesInvalidas)].sort((a, b) => b.length - a.length);
-
-  for (const nombre of invalidas) {
-    const re = new RegExp(`\\b${escaparRegex(nombre)}\\b`, "gi");
-    out = out.replace(re, "");
-  }
-
-  out = limpiarTextoTrasReemplazo(out);
-  const nota = notaPlantasPermitidas(plantasPermitidas);
-  if (nota && !out.includes(nota.trim())) {
-    out += nota;
-  }
-  return out;
+  const nota = notaAvisoMencionesInvalidas(mencionesInvalidas);
+  if (!nota || texto.includes(nota.trim())) return texto;
+  return `${texto}${nota}`;
 }
 
 /**
@@ -188,21 +205,16 @@ export async function validarYSanitizarSalidaPlantas(
 
   const permitidasIds = new Set(plantasPermitidas.map((p) => p.idEspecie));
   const mencionesCatalogo = await buscarPlantasMencionadasEnTexto(texto, 8);
+  const { mencionesValidas, mencionesInvalidas } = filtrarMencionesInvalidas(
+    mencionesCatalogo,
+    permitidasIds,
+    plantasPermitidas,
+    texto
+  );
 
-  const mencionesValidas: string[] = [];
-  const mencionesInvalidas: string[] = [];
-
-  for (const m of mencionesCatalogo) {
-    const nombre = m.nombreComun.nombre_comun;
-    if (permitidasIds.has(m.nombreComun.id_especie)) {
-      if (!mencionesValidas.includes(nombre)) mencionesValidas.push(nombre);
-    } else if (!mencionesInvalidas.includes(nombre)) {
-      mencionesInvalidas.push(nombre);
-    }
-  }
+  const plantasParaTarjetas = await plantasMencionadasParaTarjetas(texto, plantasPermitidas);
 
   if (!mencionesInvalidas.length) {
-    const plantasParaTarjetas = await plantasMencionadasParaTarjetas(texto, plantasPermitidas);
     return {
       texto,
       mencionesValidas,
@@ -212,13 +224,9 @@ export async function validarYSanitizarSalidaPlantas(
     };
   }
 
-  const textoSanitizado = sanitizarTextoPlantas(texto, plantasPermitidas, mencionesInvalidas);
-  const plantasParaTarjetas = await plantasMencionadasParaTarjetas(
-    textoSanitizado,
-    plantasPermitidas
-  );
+  const textoConAviso = sanitizarTextoPlantas(texto, plantasPermitidas, mencionesInvalidas);
   return {
-    texto: textoSanitizado,
+    texto: textoConAviso,
     mencionesValidas,
     mencionesInvalidas,
     sanitizado: true,
@@ -241,9 +249,23 @@ export function validarSalidaPlantasSync(
   for (const m of menciones) {
     if (permitidasIds.has(m.idEspecie)) {
       if (!mencionesValidas.includes(m.nombreComun)) mencionesValidas.push(m.nombreComun);
-    } else if (!mencionesInvalidas.includes(m.nombreComun)) {
-      mencionesInvalidas.push(m.nombreComun);
+      continue;
     }
+    if (
+      mencionInvalidaProtegida(
+        m.nombreComun,
+        plantasPermitidas.map((p) => ({
+          idEspecie: p.idEspecie,
+          nombreComun: p.nombreComun,
+          nombreCientifico: p.nombreCientifico ?? null,
+          imagenUrl: null,
+        })),
+        texto
+      )
+    ) {
+      continue;
+    }
+    if (!mencionesInvalidas.includes(m.nombreComun)) mencionesInvalidas.push(m.nombreComun);
   }
 
   const comoMedico: PlantaMedicoVirtual[] = plantasPermitidas.map((p) => ({
@@ -263,13 +285,13 @@ export function validarSalidaPlantasSync(
     };
   }
 
-  const textoSanitizado = sanitizarTextoPlantas(texto, comoMedico, mencionesInvalidas);
+  const textoConAviso = sanitizarTextoPlantas(texto, comoMedico, mencionesInvalidas);
   return {
-    texto: textoSanitizado,
+    texto: textoConAviso,
     mencionesValidas,
     mencionesInvalidas,
     sanitizado: true,
-    plantasParaTarjetas: plantasMencionadasEnTextoSync(textoSanitizado, comoMedico),
+    plantasParaTarjetas: plantasMencionadasEnTextoSync(texto, comoMedico),
   };
 }
 

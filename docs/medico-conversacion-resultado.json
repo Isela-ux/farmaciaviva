@@ -1,7 +1,7 @@
 {
-  "fecha": "2026-07-03T22:27:58.902Z",
-  "total": 16,
-  "ok": 16,
+  "fecha": "2026-07-03T22:44:11.362Z",
+  "total": 17,
+  "ok": 17,
   "fallos": 0,
   "resultados": [
     {
@@ -115,6 +115,13 @@
       "tipo": "tarjetas_texto",
       "estado": "OK",
       "detalle": "Hoja de sapo hierba del topo, Paloma palomita"
+    },
+    {
+      "id": "E17",
+      "nombre": "No borrar Limón dentro de Limón real",
+      "tipo": "validacion_salida",
+      "estado": "OK",
+      "detalle": "sin cambios"
     }
   ]
 }

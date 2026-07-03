@@ -66,7 +66,7 @@
       { "idEspecie": 1, "nombreComun": "Manzanilla", "nombreCientifico": "Matricaria chamomilla" },
       { "idEspecie": 2, "nombreComun": "Eucalipto", "nombreCientifico": "Eucalyptus globulus" }
     ],
-    "esperado": { "mencionesInvalidas": ["Eucalipto"], "sanitizado": true }
+    "esperado": { "mencionesInvalidas": ["Eucalipto"], "sanitizado": true, "textoContiene": ["Manzanilla", "Eucalipto"] }
   },
   {
     "id": "E09",
@@ -150,6 +150,26 @@
     "esperado": {
       "tarjetas": ["Paloma palomita", "Hoja de sapo hierba del topo"],
       "excluir": ["Caña de azúcar"]
+    }
+  },
+  {
+    "id": "E17",
+    "nombre": "No borrar Limón dentro de Limón real",
+    "tipo": "validacion_salida",
+    "texto": "- **Limón real / limón de conserva** — para náuseas.\n- **Paloma palomita** — para fiebre.",
+    "plantasPermitidas": [
+      { "idEspecie": 1, "nombreComun": "Limón real / limón de conserva", "nombreCientifico": null },
+      { "idEspecie": 2, "nombreComun": "Paloma palomita", "nombreCientifico": null }
+    ],
+    "catalogoCompleto": [
+      { "idEspecie": 99, "nombreComun": "Limón", "nombreCientifico": null },
+      { "idEspecie": 1, "nombreComun": "Limón real / limón de conserva", "nombreCientifico": null },
+      { "idEspecie": 2, "nombreComun": "Paloma palomita", "nombreCientifico": null }
+    ],
+    "esperado": {
+      "mencionesInvalidas": [],
+      "sanitizado": false,
+      "textoContiene": ["Limón real / limón de conserva", "Paloma palomita"]
     }
   }
 ]
