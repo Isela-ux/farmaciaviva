@@ -1,7 +1,7 @@
 import type { PadecimientoSeleccionado } from "@/lib/arbol-padecimientos";
 import type { PlantEmbedding } from "@/types/database";
 
-/** Agente 1 — Especialista clínico: triaje con preguntas breves. */
+/** Agente 1 — Especialista clínico: conversación guiada (máx. 3 preguntas). */
 export function promptTriaje(
   pad: PadecimientoSeleccionado,
   turnosTriaje: number,
@@ -13,30 +13,38 @@ export function promptTriaje(
 PADECIMIENTO: ${pad.padecimiento}
 RUTA: ${pad.ruta.join(" → ")}
 
-El paciente ya respondió las preguntas de triaje.
-- Resume en 2 frases lo que entendiste (intensidad, duración, síntomas asociados).
+El paciente ya respondió 3 veces. CIERRA la conversación ahora:
+- En 1-2 frases resume lo esencial (intensidad, duración, síntomas asociados).
+- Di explícitamente: «Con base en lo que me contaste, ahora te preparo una orientación y plantas del catálogo.»
 - NO hagas ninguna pregunta nueva.
-- NO recomiendes plantas todavía.
-- Termina con la línea exacta en una línea aparte:
+- NO des nombres de plantas ni preparaciones todavía (vendrán en el siguiente paso automático).
+- OBLIGATORIO: termina con esta línea exacta en una línea aparte:
 [TRIAJE_COMPLETO]`;
   }
+
+  const enfoque =
+    respuestasPaciente === 0
+      ? "INTENSIDAD (leve, moderada o fuerte) y cómo afecta su día a día"
+      : respuestasPaciente === 1
+        ? "DURACIÓN (desde cuándo, constante o va y viene)"
+        : "SÍNTOMAS ASOCIADOS o agravantes (fiebre, náusea, otros dolores, etc.)";
 
   return `Eres ${pad.especialista} del Médico Virtual de Farmacia Viva (recurso educativo, México).
 
 PADECIMIENTO REPORTADO: ${pad.padecimiento}
 RUTA DE SÍNTOMAS: ${pad.ruta.join(" → ")}
+PREGUNTA ${turnosTriaje} DE MÁXIMO 3 — ENFOQUE: ${enfoque}
 
-TU ROL (Agente de triaje):
+TU ROL:
 - Lee TODO lo que el paciente ya dijo; NO repitas preguntas sobre datos que ya están en su mensaje.
-- Si el padecimiento ya indica zona o tipo (ojos, digestión, luz solar, etc.), NO preguntes otra vez «qué parte del cuerpo»; pregunta intensidad, duración o síntomas asociados.
+- Si el padecimiento ya indica zona o tipo (ojos, digestión, luz solar, etc.), NO preguntes otra vez «qué parte del cuerpo».
 - Si menciona dolor o molestia con la luz, el contexto es ocular (fotofobia) salvo que diga lo contrario.
-- Si el paciente menciona otro dolor o zona (ej. «dolor abdominal», «también cabeza»), es una RESPUESTA a tu pregunta — intégrala al mismo caso, NO trates como consulta nueva.
-- Haz UNA sola pregunta breve y clara por turno (intensidad, duración, síntomas asociados, etc.).
+- Si el paciente menciona otro dolor o zona (ej. «dolor abdominal», «también cabeza»), es una RESPUESTA — intégrala al mismo caso.
+- Haz UNA sola pregunta breve, empática y clara sobre el ENFOQUE indicado arriba.
 - NO recomiendes plantas, preparaciones ni medicamentos.
-- Tono empático, español claro.
-- Pregunta ${turnosTriaje} de máximo 3.
-- PROHIBIDO escribir [TRIAJE_COMPLETO] mientras aún estés preguntando.
-- Espera la respuesta del paciente antes de cerrar el triaje.`;
+- NO des orientación clínica ni resumen todavía (eso viene después de las 3 respuestas).
+- Tono cálido, español claro.
+- PROHIBIDO escribir [TRIAJE_COMPLETO] mientras aún estés preguntando.`;
 }
 
 /** Agente 2 y 3 — Plantas + preparación, con contexto RAG. */
@@ -56,13 +64,18 @@ export function promptRecomendacion(
     .join("\n\n");
 
   return `Eres un equipo de dos especialistas del Médico Virtual de Farmacia Viva (México).
-Responde SOLO con información del CONTEXTO RECUPERADO. Español claro, máximo 220 palabras total.
+Responde SOLO con información del CONTEXTO RECUPERADO. Español claro, máximo 280 palabras total.
 
 PADECIMIENTO: ${pad.padecimiento}
 ESPECIALISTA CLÍNICO: ${pad.especialista}
 NOTAS DEL TRIAJE: ${notasTriaje || "Sin notas adicionales"}
 
-FORMATO OBLIGATORIO (dos secciones con estos encabezados exactos):
+FORMATO OBLIGATORIO (tres secciones con estos encabezados exactos):
+
+## 💡 Orientación sobre tu malestar
+- 2-4 frases claras sobre qué podría estar pasando según lo que contó el paciente (lenguaje educativo; NO es diagnóstico médico definitivo).
+- Indica cuándo conviene acudir a un profesional de salud.
+- Conecta el malestar con el contexto del triaje.
 
 ## 🌿 Especialista en plantas medicinales
 - Viñetas (-) con 1 a 3 plantas del catálogo, usos y por qué podrían ayudar en este padecimiento.
@@ -108,13 +121,29 @@ export function esPreguntaPendiente(texto: string): boolean {
   );
 }
 
+/** El modelo cerró con resumen / transición a recomendación (aunque olvide el marcador). */
+export function pareceCierreTriaje(texto: string): boolean {
+  const t = texto.trim();
+  if (!t || esPreguntaPendiente(t)) return false;
+  if (t.includes("[TRIAJE_COMPLETO]")) return true;
+  return (
+    /\b(entend|resum|segun lo que|según lo que|con base en|por lo que|interpret|claro tu caso|preparo tu|te preparo|orientacion|orientación|a continuacion|a continuación|catalogo|catálogo)\b/i.test(
+      t
+    ) && t.length >= 40
+  );
+}
+
 export function evaluarTriajeCompleto(
   texto: string,
   tieneMarcador: boolean,
   respuestasPaciente: number
 ): boolean {
   if (esPreguntaPendiente(texto)) return false;
-  if (tieneMarcador && respuestasPaciente >= 1) return true;
+  // Cierre normal: 3 respuestas del paciente + mensaje de cierre sin preguntas
   if (respuestasPaciente >= 3 && !esPreguntaPendiente(texto)) return true;
+  // Marcador explícito del modelo (mínimo 2 respuestas para no cerrar demasiado pronto)
+  if (tieneMarcador && respuestasPaciente >= 2) return true;
+  // Respaldo: resumen claro de cierre si el modelo olvidó el marcador
+  if (respuestasPaciente >= 2 && pareceCierreTriaje(texto)) return true;
   return false;
 }

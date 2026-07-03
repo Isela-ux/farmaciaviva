@@ -7,6 +7,10 @@ import {
   interpretarEntradaGuia,
   type PadecimientoSeleccionado,
 } from "@/lib/arbol-padecimientos";
+import {
+  contarRespuestasPacienteTriaje,
+  evaluarTriajeCompleto,
+} from "@/lib/medico-agentes";
 import type { PlantaMedicoVirtual } from "@/types/database";
 
 export type FaseGuia = "arbol" | "triaje" | "recomendacion" | "fin";
@@ -163,7 +167,7 @@ export function useMedicoGuia() {
       agregarMensaje({
         role: "assistant",
         content:
-          "Consultando el catálogo con el **Especialista en plantas** y el **Especialista en preparación**…",
+          "Perfecto. Estoy preparando tu **orientación** y las **plantas del catálogo** que podrían ayudarte…",
         agente: "sistema",
       });
 
@@ -172,7 +176,9 @@ export function useMedicoGuia() {
         const historial = [{ role: "user", content: pad.padecimiento }];
         const plantas = await buscarPlantasRespuesta(pad.padecimiento, texto, historial);
         setMensajes((prev) => {
-          const sinEspera = prev.filter((m) => !m.content.includes("Consultando el catálogo"));
+          const sinEspera = prev.filter(
+            (m) => !(m.agente === "sistema" && /preparando tu/i.test(m.content))
+          );
           return [
             ...sinEspera,
             { id: uid(), role: "assistant", content: texto, agente: "plantas", plantas },
@@ -299,7 +305,15 @@ export function useMedicoGuia() {
         setNotasTriaje(res.notasTriaje);
         setMensajesTriaje((prev) => [...prev, { role: "assistant", content: res.texto }]);
         agregarMensaje({ role: "assistant", content: res.texto, agente: "triaje" });
-        if (res.triajeCompleto) await generarRecomendacion(padecimiento, res.notasTriaje);
+        const respuestas = contarRespuestasPacienteTriaje(historial);
+        const debeRecomendar =
+          res.triajeCompleto ||
+          evaluarTriajeCompleto(
+            res.texto,
+            res.texto.includes("[TRIAJE_COMPLETO]"),
+            respuestas
+          );
+        if (debeRecomendar) await generarRecomendacion(padecimiento, res.notasTriaje);
       } catch {
         setErrorGuia("No se pudo continuar el triaje.");
       } finally {

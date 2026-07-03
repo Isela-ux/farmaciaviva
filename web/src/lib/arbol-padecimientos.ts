@@ -488,8 +488,21 @@ export function mensajeBienvenidaGuia(): string {
   return `Gracias por contarme. **Primero te haré preguntas** para entender cómo te sientes; las plantas del catálogo las verás al final.`;
 }
 
+export function esPedidoOrientacionFinal(texto: string): boolean {
+  const t = normalizarEntrada(texto);
+  return (
+    /\b(diagnostico|diagnóstico|que tengo|qué tengo|que me pasa|qué me pasa|que es lo que tengo|qué es lo que tengo|y ahora|que hago|qué hago|conclusion|conclusión|orientacion|orientación|valoracion|valoración|que significa|qué significa|que puede ser|qué puede ser|me puedes decir que|me puedes decir qué)\b/.test(
+      t
+    ) ||
+    /\b(que me recomiend\w*|qué me recomiend\w*|dame tu opinion|dame tu opinión|que opinas|qué opinas)\b/.test(
+      t
+    )
+  );
+}
+
 export function esPedidoRecomendacionPlantas(texto: string): boolean {
   const t = normalizarEntrada(texto);
+  if (esPedidoOrientacionFinal(texto)) return true;
   if (
     /\b(recomiend\w*|sugier\w*|que plantas|qué plantas|cuales plantas|cuáles plantas|que puedo tomar|qué puedo tomar|que me sirve|qué me sirve|plantas para|que consumir|qué consumir)\b/.test(
       t
