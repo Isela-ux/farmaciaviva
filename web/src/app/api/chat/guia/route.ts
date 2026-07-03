@@ -12,8 +12,8 @@ import {
   promptTriaje,
 } from "@/lib/medico-agentes";
 import { DEEPSEEK_PROVIDER_OPTIONS, tieneClaveDeepSeek } from "@/lib/ai-config";
-import { obtenerPlantasPorIds } from "@/lib/plants";
-import { buscarContextoRAG, construirPromptSistema, modeloChat } from "@/lib/rag";
+import { buscarPlantasParaRecomendacion, obtenerPlantasPorIds } from "@/lib/plants";
+import { buscarContextoRAG, chunksDesdePlantasCatalogo, construirPromptSistema, modeloChat } from "@/lib/rag";
 
 export const maxDuration = 45;
 
@@ -112,11 +112,17 @@ export async function POST(req: Request) {
   }
 
   if (fase === "recomendacion") {
-    const consulta = consultaRAGDesdePadecimiento(padecimiento, notasTriajePrevias);
-    const contexto = await buscarContextoRAG(consulta, {
-      mensajes: messages,
-      limite: 3,
-    });
+    const plantasRanked = await buscarPlantasParaRecomendacion(
+      padecimiento,
+      notasTriajePrevias,
+      3
+    );
+    const contexto =
+      plantasRanked.length > 0
+        ? await chunksDesdePlantasCatalogo(plantasRanked)
+        : await buscarContextoRAG(consultaRAGDesdePadecimiento(padecimiento, notasTriajePrevias), {
+            limite: 3,
+          });
 
     const { text } = await generateText({
       model: modeloChat(),
@@ -134,7 +140,10 @@ export async function POST(req: Request) {
     return Response.json({
       texto: text,
       plantas: await obtenerPlantasPorIds(
-        contexto.map((c) => c.id_especie).filter((id): id is number => Number.isFinite(id))
+        (plantasRanked.length > 0
+          ? plantasRanked.map((p) => p.nombreComun.id_especie)
+          : contexto.map((c) => c.id_especie)
+        ).filter((id): id is number => Number.isFinite(id))
       ),
     });
   }

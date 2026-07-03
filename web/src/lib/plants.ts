@@ -1,4 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
+import type { PadecimientoSeleccionado } from "@/lib/arbol-padecimientos";
 import { etiquetaEspecie, etiquetaUbicacion, ordenarImagenes, urlImagenParaLista } from "@/lib/images";
 import type {
   CategoriaUso,
@@ -401,12 +402,32 @@ export async function buscarPlantasPorTexto(termino: string, limite = 8): Promis
 
 const SINONIMOS_MEDICINALES: Record<string, string[]> = {
   digest: ["digest", "estomago", "intestinal", "gastric", "flatul", "colico"],
-  inflam: ["inflam", "dolor", "reuma", "artri"],
+  inflam: ["inflam", "reuma", "artri"],
   respir: ["respir", "tos", "pulmon", "bronqu"],
   piel: ["piel", "dermat", "herida", "quemad"],
   nerv: ["nerv", "ansied", "insomn", "estres"],
   febr: ["febr", "fiebre", "grip"],
 };
+
+/** Términos demasiado amplios que hacen que siempre salgan las mismas plantas. */
+const TERMINOS_GENERICOS = new Set([
+  "digest",
+  "digestivo",
+  "intestinal",
+  "estomago",
+  "gastric",
+  "dolor",
+  "inflam",
+  "medicinal",
+  "medicinales",
+  "plantas",
+  "planta",
+  "para",
+  "malestar",
+  "sintoma",
+  "paciente",
+  "contexto",
+]);
 
 function expandirTerminosMedicinales(terminos: string[]): string[] {
   const out = new Set(terminos);
@@ -421,69 +442,125 @@ function expandirTerminosMedicinales(terminos: string[]): string[] {
   return [...out];
 }
 
+async function puntuarPlantasPorTerminos(
+  terminos: string[],
+  pesoBase: number,
+  scores: Map<number, number>
+): Promise<void> {
+  if (!terminos.length) return;
+  const supabase = await createClient();
+
+  for (let i = 0; i < terminos.length; i++) {
+    const t = terminos[i];
+    if (t.length < 4) continue;
+    const peso = pesoBase + (terminos.length - i);
+
+    const { data: usos } = await supabase
+      .from("uso_planta")
+      .select("id_especie")
+      .or(
+        `descripcion_uso.ilike.%${t}%,parte_utilizada.ilike.%${t}%,forma_preparacion.ilike.%${t}%,riesgos_contraindicaciones.ilike.%${t}%`
+      )
+      .limit(60);
+
+    for (const row of usos ?? []) {
+      scores.set(row.id_especie, (scores.get(row.id_especie) ?? 0) + peso);
+    }
+
+    const { data: props } = await supabase
+      .from("propiedad")
+      .select("id_propiedad")
+      .ilike("nombre_propiedad", `%${t}%`)
+      .limit(8);
+
+    if (props?.length) {
+      const { data: ep } = await supabase
+        .from("especie_propiedad")
+        .select("id_especie")
+        .in(
+          "id_propiedad",
+          props.map((p) => p.id_propiedad)
+        )
+        .limit(40);
+
+      for (const row of ep ?? []) {
+        scores.set(row.id_especie, (scores.get(row.id_especie) ?? 0) + peso);
+      }
+    }
+  }
+}
+
+function plantasDesdeScores(
+  scores: Map<number, number>,
+  limite: number
+): Promise<PlantaCatalogo[]> {
+  return obtenerCatalogoPlantas().then((catalogo) => {
+    const mapa = new Map(catalogo.map((p) => [p.nombreComun.id_especie, p]));
+    return [...scores.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .map(([id]) => mapa.get(id))
+      .filter((p): p is PlantaCatalogo => Boolean(p))
+      .slice(0, limite);
+  });
+}
+
 /** Búsqueda por nombre + usos medicinales (sin depender solo de embeddings). */
 export async function buscarPlantasPorContenidoMedicinal(
   termino: string,
   limite = 8
 ): Promise<PlantaCatalogo[]> {
   const porNombre = await buscarPlantasPorTexto(termino, limite);
-  if (porNombre.length >= limite) return porNombre;
-
-  const terminos = expandirTerminosMedicinales(extraerTerminosBusqueda(termino));
-  if (terminos.length === 0) return porNombre;
-
-  const supabase = await createClient();
-  const ids = new Set(porNombre.map((p) => p.nombreComun.id_especie));
-  const idsExtra: number[] = [];
-
-  for (const t of terminos.slice(0, 6)) {
-    const { data: usos } = await supabase
-      .from("uso_planta")
-      .select("id_especie")
-      .ilike("descripcion_uso", `%${t}%`)
-      .limit(limite * 3);
-
-    for (const row of usos ?? []) {
-      if (ids.has(row.id_especie)) continue;
-      ids.add(row.id_especie);
-      idsExtra.push(row.id_especie);
-      if (porNombre.length + idsExtra.length >= limite) break;
-    }
-
-    if (porNombre.length + idsExtra.length >= limite) break;
-
-    const { data: props } = await supabase
-      .from("propiedad")
-      .select("id_propiedad, nombre_propiedad")
-      .ilike("nombre_propiedad", `%${t}%`)
-      .limit(10);
-
-    if (props?.length) {
-      const idsProp = props.map((p) => p.id_propiedad);
-      const { data: ep } = await supabase
-        .from("especie_propiedad")
-        .select("id_especie")
-        .in("id_propiedad", idsProp)
-        .limit(limite * 3);
-
-      for (const row of ep ?? []) {
-        if (ids.has(row.id_especie)) continue;
-        ids.add(row.id_especie);
-        idsExtra.push(row.id_especie);
-        if (porNombre.length + idsExtra.length >= limite) break;
-      }
-    }
+  const scores = new Map<number, number>();
+  for (const p of porNombre) {
+    scores.set(p.nombreComun.id_especie, 8);
   }
 
-  if (idsExtra.length === 0) return porNombre;
+  const terminosRaw = extraerTerminosBusqueda(termino);
+  const especificos = terminosRaw.filter((t) => !TERMINOS_GENERICOS.has(t));
+  const genericos = expandirTerminosMedicinales(
+    terminosRaw.filter((t) => TERMINOS_GENERICOS.has(t) || t.includes("dolor"))
+  ).filter((t) => !especificos.includes(t));
 
-  const catalogo = await obtenerCatalogoPlantas();
-  const mapa = new Map(catalogo.map((p) => [p.nombreComun.id_especie, p]));
-  const extras = idsExtra
-    .map((id) => mapa.get(id))
-    .filter((p): p is PlantaCatalogo => Boolean(p));
+  await puntuarPlantasPorTerminos(especificos, 12, scores);
+  if (scores.size < limite) {
+    await puntuarPlantasPorTerminos(genericos, 2, scores);
+  }
 
-  return [...porNombre, ...extras].slice(0, limite);
+  const ranked = await plantasDesdeScores(scores, limite);
+  if (ranked.length > 0) return ranked;
+  return porNombre;
+}
+
+/** Recuperación enfocada al padecimiento concreto (recomendación del guía). */
+export async function buscarPlantasParaRecomendacion(
+  pad: PadecimientoSeleccionado,
+  notasTriaje?: string,
+  limite = 3
+): Promise<PlantaCatalogo[]> {
+  const scores = new Map<number, number>();
+
+  const terminosPad = pad.terminosRAG
+    .map((t) => normalizarTextoBusqueda(t))
+    .flatMap((t) => t.split(/[^a-z0-9]+/))
+    .filter((t) => t.length >= 4 && !TERMINOS_GENERICOS.has(t));
+
+  const terminosNotas = extraerTerminosBusqueda(notasTriaje ?? "").filter(
+    (t) => !TERMINOS_GENERICOS.has(t)
+  );
+
+  const terminosPadecimiento = extraerTerminosBusqueda(pad.padecimiento).filter(
+    (t) => !TERMINOS_GENERICOS.has(t)
+  );
+
+  const especificos = [...new Set([...terminosPad, ...terminosPadecimiento, ...terminosNotas])];
+
+  await puntuarPlantasPorTerminos(especificos, 15, scores);
+
+  const ranked = await plantasDesdeScores(scores, limite);
+  if (ranked.length >= 1) return ranked;
+
+  const consulta = `${pad.padecimiento} ${pad.terminosRAG.join(" ")} ${notasTriaje ?? ""}`;
+  return buscarPlantasPorContenidoMedicinal(consulta, limite);
 }
 
 /** Normaliza texto para comparar nombres de plantas. */

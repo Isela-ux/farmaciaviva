@@ -3,6 +3,7 @@
 import { useCallback, useState } from "react";
 import {
   esConsultaPlantaDirecta,
+  esConsultaSeguimientoPlanta,
   esPedidoRecomendacionPlantas,
   interpretarEntradaGuia,
   type PadecimientoSeleccionado,
@@ -294,7 +295,9 @@ export function useMedicoGuia() {
       setErrorGuia(null);
 
       try {
-        const plantasContextoIds = idsPlantasRecientes(mensajes);
+        const plantasContextoIds = esConsultaSeguimientoPlanta(texto)
+          ? idsPlantasRecientes(mensajes)
+          : [];
         const historialBase = mensajes.map((m) => ({ role: m.role, content: m.content }));
         const ultimo = historialBase.at(-1);
         const historial =

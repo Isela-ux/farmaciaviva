@@ -104,7 +104,7 @@ function textoContextoDesdeFicha(ficha: FichaPlanta): string {
   return lineas.join("\n");
 }
 
-async function chunksDesdePlantas(
+export async function chunksDesdePlantasCatalogo(
   plantas: PlantaCatalogo[]
 ): Promise<PlantEmbedding[]> {
   const fichas = await Promise.all(
@@ -217,13 +217,13 @@ export async function buscarContextoRAG(
   // Prioridad: la planta que el usuario pregunta AHORA (no mensajes viejos del chat)
   const mencionadasActual = await buscarPlantasMencionadasEnTexto(consultaActual, limite);
   if (mencionadasActual.length > 0) {
-    return chunksDesdePlantas(mencionadasActual.slice(0, limite));
+    return chunksDesdePlantasCatalogo(mencionadasActual.slice(0, limite));
   }
 
   if (!esConsultaDeSeguimiento(consultaActual)) {
     const porTextoActual = await buscarPlantasPorTexto(consultaActual, limite);
     if (porTextoActual.length > 0) {
-      return chunksDesdePlantas(porTextoActual.slice(0, limite));
+      return chunksDesdePlantasCatalogo(porTextoActual.slice(0, limite));
     }
   }
 
@@ -234,12 +234,12 @@ export async function buscarContextoRAG(
     const ultimoAsistente = [...mensajes].reverse().find((m) => m.role === "assistant")?.content ?? "";
     const delUltimoTurno = await buscarPlantasMencionadasEnTexto(ultimoAsistente, limite);
     if (delUltimoTurno.length > 0) {
-      return chunksDesdePlantas(delUltimoTurno.slice(0, limite));
+      return chunksDesdePlantasCatalogo(delUltimoTurno.slice(0, limite));
     }
 
     const delHistorial = await buscarPlantasMencionadasEnTexto(textoConversacion, limite);
     if (delHistorial.length > 0) {
-      return chunksDesdePlantas(delHistorial.slice(0, limite));
+      return chunksDesdePlantasCatalogo(delHistorial.slice(0, limite));
     }
   }
 
@@ -251,7 +251,7 @@ export async function buscarContextoRAG(
   const plantas = unificarPlantas(plantasMencionadas, plantasPorBusqueda);
 
   if (plantas.length > 0) {
-    return chunksDesdePlantas(plantas.slice(0, limite));
+    return chunksDesdePlantasCatalogo(plantas.slice(0, limite));
   }
 
   return buscarPorVector(consultaVector, limite);

@@ -534,6 +534,16 @@ export function esPreguntaSobreUsosPlanta(texto: string): boolean {
   );
 }
 
+export function esConsultaSeguimientoPlanta(texto: string): boolean {
+  const t = normalizarEntrada(texto);
+  return (
+    /\b(su|sus|esta|este|esa|ese|ello)\b/.test(t) ||
+    /\b(modo de uso|modo de empleo|como se usa|cómo se usa|como se prepara|cómo se prepara|forma de uso|forma de preparaci[oó]n)\b/.test(
+      t
+    )
+  );
+}
+
 export function esConsultaPlantaDirecta(texto: string): boolean {
   const t = normalizarEntrada(texto);
   if (esPedidoRecomendacionPlantas(texto)) return false;
