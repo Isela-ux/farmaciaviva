@@ -9,7 +9,8 @@ import {
 } from "@/lib/arbol-padecimientos";
 import {
   contarRespuestasPacienteTriaje,
-  evaluarTriajeCompleto,
+  debeGenerarRecomendacion,
+  prometeRecomendacion,
 } from "@/lib/medico-agentes";
 import type { PlantaMedicoVirtual } from "@/types/database";
 
@@ -173,6 +174,9 @@ export function useMedicoGuia() {
 
       try {
         const texto = await llamarRecomendacion(pad, notas);
+        if (!texto.trim()) {
+          throw new Error("Respuesta vacía del servidor");
+        }
         const historial = [{ role: "user", content: pad.padecimiento }];
         const plantas = await buscarPlantasRespuesta(pad.padecimiento, texto, historial);
         setMensajes((prev) => {
@@ -186,7 +190,10 @@ export function useMedicoGuia() {
         });
         setFase("fin");
       } catch {
-        setErrorGuia("No se pudo generar la recomendación de plantas.");
+        setErrorGuia(
+          "No se pudo generar la orientación y plantas. Escribe «muéstrame las plantas» para reintentar."
+        );
+        setFase("triaje");
       } finally {
         setCargandoGuia(false);
       }
@@ -215,7 +222,10 @@ export function useMedicoGuia() {
         setNotasTriaje(res.notasTriaje);
         setMensajesTriaje((prev) => [...prev, { role: "assistant", content: res.texto }]);
         agregarMensaje({ role: "assistant", content: res.texto, agente: "triaje" });
-        if (res.triajeCompleto) await generarRecomendacion(pad, res.notasTriaje);
+        const respuestas = contarRespuestasPacienteTriaje(contextoInicial);
+        if (debeGenerarRecomendacion(res.texto, respuestas, res.triajeCompleto)) {
+          await generarRecomendacion(pad, res.notasTriaje);
+        }
       } catch {
         setErrorGuia("No se pudo conectar con el especialista de triaje.");
       } finally {
@@ -306,14 +316,9 @@ export function useMedicoGuia() {
         setMensajesTriaje((prev) => [...prev, { role: "assistant", content: res.texto }]);
         agregarMensaje({ role: "assistant", content: res.texto, agente: "triaje" });
         const respuestas = contarRespuestasPacienteTriaje(historial);
-        const debeRecomendar =
-          res.triajeCompleto ||
-          evaluarTriajeCompleto(
-            res.texto,
-            res.texto.includes("[TRIAJE_COMPLETO]"),
-            respuestas
-          );
-        if (debeRecomendar) await generarRecomendacion(padecimiento, res.notasTriaje);
+        if (debeGenerarRecomendacion(res.texto, respuestas, res.triajeCompleto)) {
+          await generarRecomendacion(padecimiento, res.notasTriaje);
+        }
       } catch {
         setErrorGuia("No se pudo continuar el triaje.");
       } finally {
@@ -354,6 +359,16 @@ export function useMedicoGuia() {
 
       agregarMensaje({ role: "user", content: t });
 
+      // Recuperación: resumen prometió plantas pero no llegaron
+      if (fase === "triaje" && padecimiento) {
+        const yaHayRecomendacion = mensajes.some((m) => m.agente === "plantas");
+        const ultimoTriaje = [...mensajes].reverse().find((m) => m.agente === "triaje");
+        if (!yaHayRecomendacion && ultimoTriaje && prometeRecomendacion(ultimoTriaje.content)) {
+          await generarRecomendacion(padecimiento, notasTriaje);
+          return true;
+        }
+      }
+
       if (
         (fase === "triaje" || fase === "fin") &&
         esPedidoRecomendacionPlantas(t) &&
@@ -381,6 +396,7 @@ export function useMedicoGuia() {
       fase,
       padecimiento,
       notasTriaje,
+      mensajes,
       agregarMensaje,
       procesarArbol,
       procesarTriaje,

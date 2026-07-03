@@ -115,9 +115,18 @@ export function contarRespuestasPacienteTriaje(
 export function esPreguntaPendiente(texto: string): boolean {
   const t = texto.trim();
   if (!t) return false;
-  if (t.includes("?") || t.includes("¿")) return true;
-  return /\b(cu[aá]l|cu[aá]ndo|cu[aá]nto|qu[eé]|c[oó]mo|describe|indica|presentas|tienes|sientes|hay)\b/i.test(
+  if (t.includes("¿")) return true;
+  if (/\?\s*$/.test(t)) return true;
+  // Solo patrones interrogativos claros (evitar falsos positivos como «lo que me contaste»)
+  return /(?:^|[.!]\s+)(?:podr[ií]as|puedes|me dices|cu[eé]ntame|cu[aá]l|cu[aá]ndo|cu[aá]nto|c[oó]mo|qu[eé] tal|tienes|sientes|presentas|hay)\b/i.test(
     t
+  );
+}
+
+/** El asistente prometió orientación/plantas al cerrar la conversación. */
+export function prometeRecomendacion(texto: string): boolean {
+  return /\b(te preparo|preparo tu|preparo una|a continuaci[oó]n|orientaci[oó]n y plantas|plantas del cat[aá]logo)\b/i.test(
+    texto
   );
 }
 
@@ -138,12 +147,20 @@ export function evaluarTriajeCompleto(
   tieneMarcador: boolean,
   respuestasPaciente: number
 ): boolean {
+  if (prometeRecomendacion(texto)) return true;
   if (esPreguntaPendiente(texto)) return false;
-  // Cierre normal: 3 respuestas del paciente + mensaje de cierre sin preguntas
-  if (respuestasPaciente >= 3 && !esPreguntaPendiente(texto)) return true;
-  // Marcador explícito del modelo (mínimo 2 respuestas para no cerrar demasiado pronto)
+  if (respuestasPaciente >= 3) return true;
   if (tieneMarcador && respuestasPaciente >= 2) return true;
-  // Respaldo: resumen claro de cierre si el modelo olvidó el marcador
   if (respuestasPaciente >= 2 && pareceCierreTriaje(texto)) return true;
   return false;
+}
+
+/** ¿Debe lanzarse la recomendación tras este turno de triaje? */
+export function debeGenerarRecomendacion(
+  texto: string,
+  respuestasPaciente: number,
+  triajeCompletoApi = false
+): boolean {
+  if (triajeCompletoApi) return true;
+  return evaluarTriajeCompleto(texto, texto.includes("[TRIAJE_COMPLETO]"), respuestasPaciente);
 }
