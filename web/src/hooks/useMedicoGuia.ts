@@ -48,15 +48,32 @@ async function buscarPlantasRespuesta(
   return data.plantas ?? [];
 }
 
-async function llamarConsultaPlanta(mensajes: { role: string; content: string }[]): Promise<string> {
+function idsPlantasRecientes(mensajes: MensajeGuia[]): number[] {
+  for (let i = mensajes.length - 1; i >= 0; i--) {
+    const m = mensajes[i];
+    if (m.role === "assistant" && m.plantas?.length) {
+      return m.plantas.map((p) => p.idEspecie);
+    }
+  }
+  return [];
+}
+
+async function llamarConsultaPlanta(
+  mensajes: { role: string; content: string }[],
+  plantasContextoIds: number[] = []
+): Promise<{ texto: string; plantas: PlantaMedicoVirtual[] }> {
   const res = await fetch("/api/chat/guia", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ fase: "consulta_planta", messages: mensajes }),
+    body: JSON.stringify({
+      fase: "consulta_planta",
+      messages: mensajes,
+      plantasContextoIds,
+    }),
   });
   if (!res.ok) throw new Error("consulta_planta");
-  const data = (await res.json()) as { texto?: string };
-  return data.texto ?? "";
+  const data = (await res.json()) as { texto?: string; plantas?: PlantaMedicoVirtual[] };
+  return { texto: data.texto ?? "", plantas: data.plantas ?? [] };
 }
 
 async function llamarTriaje(
@@ -80,7 +97,7 @@ async function llamarTriaje(
 async function llamarRecomendacion(
   padecimiento: PadecimientoSeleccionado,
   notasTriaje: string
-): Promise<string> {
+): Promise<{ texto: string; plantas: PlantaMedicoVirtual[] }> {
   const res = await fetch("/api/chat/guia", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -92,8 +109,8 @@ async function llamarRecomendacion(
     }),
   });
   if (!res.ok) throw new Error("recomendacion");
-  const data = (await res.json()) as { texto?: string };
-  return data.texto ?? "";
+  const data = (await res.json()) as { texto?: string; plantas?: PlantaMedicoVirtual[] };
+  return { texto: data.texto ?? "", plantas: data.plantas ?? [] };
 }
 
 export function etiquetaAgenteGuia(agente?: MensajeGuia["agente"]): string | null {
@@ -173,12 +190,10 @@ export function useMedicoGuia() {
       });
 
       try {
-        const texto = await llamarRecomendacion(pad, notas);
+        const { texto, plantas } = await llamarRecomendacion(pad, notas);
         if (!texto.trim()) {
           throw new Error("Respuesta vacía del servidor");
         }
-        const historial = [{ role: "user", content: pad.padecimiento }];
-        const plantas = await buscarPlantasRespuesta(pad.padecimiento, texto, historial);
         setMensajes((prev) => {
           const sinEspera = prev.filter(
             (m) => !(m.agente === "sistema" && /preparando tu/i.test(m.content))
@@ -278,20 +293,40 @@ export function useMedicoGuia() {
       setCargandoGuia(true);
       setErrorGuia(null);
 
-      const historialBase = mensajes.map((m) => ({ role: m.role, content: m.content }));
-      const ultimo = historialBase.at(-1);
-      const historial =
-        ultimo?.role === "user" && ultimo.content === texto
-          ? historialBase
-          : [...historialBase, { role: "user", content: texto }];
-
       try {
-        const textoRespuesta = await llamarConsultaPlanta(historial);
-        await agregarRespuestaAsistente(
-          { role: "assistant", content: textoRespuesta, agente: "plantas" },
-          texto,
-          historial
+        const plantasContextoIds = idsPlantasRecientes(mensajes);
+        const historialBase = mensajes.map((m) => ({ role: m.role, content: m.content }));
+        const ultimo = historialBase.at(-1);
+        const historial =
+          ultimo?.role === "user" && ultimo.content === texto
+            ? historialBase
+            : [...historialBase, { role: "user", content: texto }];
+
+        const { texto: textoRespuesta, plantas } = await llamarConsultaPlanta(
+          historial,
+          plantasContextoIds
         );
+
+        const id = uid();
+        setMensajes((prev) => [
+          ...prev,
+          {
+            id,
+            role: "assistant",
+            content: textoRespuesta,
+            agente: "plantas",
+            plantas: plantas.length > 0 ? plantas : undefined,
+          },
+        ]);
+
+        if (!plantas.length && textoRespuesta.trim()) {
+          const plantasExtra = await buscarPlantasRespuesta(texto, textoRespuesta, historial);
+          if (plantasExtra.length > 0) {
+            setMensajes((prev) =>
+              prev.map((m) => (m.id === id ? { ...m, plantas: plantasExtra } : m))
+            );
+          }
+        }
       } catch {
         setErrorGuia("No se pudo consultar la planta en el catálogo.");
       } finally {

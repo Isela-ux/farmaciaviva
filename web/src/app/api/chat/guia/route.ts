@@ -12,6 +12,7 @@ import {
   promptTriaje,
 } from "@/lib/medico-agentes";
 import { DEEPSEEK_PROVIDER_OPTIONS, tieneClaveDeepSeek } from "@/lib/ai-config";
+import { obtenerPlantasPorIds } from "@/lib/plants";
 import { buscarContextoRAG, construirPromptSistema, modeloChat } from "@/lib/rag";
 
 export const maxDuration = 45;
@@ -43,7 +44,15 @@ export async function POST(req: Request) {
       });
     }
 
-    const contexto = await buscarContextoRAG(consulta, { mensajes: messages, limite: 3 });
+    const plantasContextoIds = Array.isArray(body.plantasContextoIds)
+      ? (body.plantasContextoIds as number[]).filter((id) => Number.isFinite(id))
+      : [];
+
+    const contexto = await buscarContextoRAG(consulta, {
+      mensajes: messages,
+      limite: 3,
+      plantasContextoIds,
+    });
 
     const { text } = await generateText({
       model: modeloChat(),
@@ -56,7 +65,12 @@ export async function POST(req: Request) {
       })),
     });
 
-    return Response.json({ texto: text });
+    return Response.json({
+      texto: text,
+      plantas: await obtenerPlantasPorIds(
+        contexto.map((c) => c.id_especie).filter((id): id is number => Number.isFinite(id))
+      ),
+    });
   }
 
   if (!padecimiento?.padecimiento) {
@@ -117,7 +131,12 @@ export async function POST(req: Request) {
       ],
     });
 
-    return Response.json({ texto: text });
+    return Response.json({
+      texto: text,
+      plantas: await obtenerPlantasPorIds(
+        contexto.map((c) => c.id_especie).filter((id): id is number => Number.isFinite(id))
+      ),
+    });
   }
 
   return new Response(JSON.stringify({ error: "Fase no válida" }), {

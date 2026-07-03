@@ -565,7 +565,10 @@ export function esConsultaDeSeguimiento(consulta: string): boolean {
   return (
     extraerTerminosBusqueda(consulta).length === 0 ||
     /^(y\s+)?(cuales|cuáles|que|qué|cual|cuál|dime|cuéntame|cuentame|hablame|háblame)\b/.test(q) ||
-    /\b(sus|su|esta|este|esa|ese|ello|alli|allí|ahi|ahí)\b/.test(q)
+    /\b(sus|su|esta|este|esa|ese|ello|alli|allí|ahi|ahí)\b/.test(q) ||
+    /\b(modo de uso|modo de empleo|como se usa|cómo se usa|como se prepara|cómo se prepara|como se aplica|cómo se aplica|forma de uso|forma de preparaci[oó]n)\b/.test(
+      q
+    )
   );
 }
 

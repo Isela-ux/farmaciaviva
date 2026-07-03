@@ -175,13 +175,40 @@ export function construirConsultaRAG(
   return `${historial}\n${consultaActual}`;
 }
 
+async function chunksDesdeIds(ids: number[]): Promise<PlantEmbedding[]> {
+  const unicos = [...new Set(ids.filter((id) => Number.isFinite(id)))];
+  if (!unicos.length) return [];
+
+  const fichas = await Promise.all(unicos.map((id) => obtenerFichaPlanta(id)));
+  return fichas
+    .filter((f): f is FichaPlanta => f !== null)
+    .map((ficha, i) => ({
+      id: i,
+      id_especie: ficha.especie.id_especie,
+      chunk_type: "ficha_completa" as const,
+      content: textoContextoDesdeFicha(ficha),
+      metadata: { nombre_comun: ficha.nombresComunes[0]?.nombre_comun ?? "" },
+      similarity: 1,
+    }));
+}
+
 export async function buscarContextoRAG(
   consulta: string,
-  opciones?: { mensajes?: MensajeConversacion[]; limite?: number }
+  opciones?: {
+    mensajes?: MensajeConversacion[];
+    limite?: number;
+    plantasContextoIds?: number[];
+  }
 ): Promise<PlantEmbedding[]> {
   const limite = opciones?.limite ?? LIMITE_CONTEXTO;
   const mensajes = opciones?.mensajes ?? [];
   const consultaActual = consulta.trim();
+  const idsContexto = opciones?.plantasContextoIds?.filter((id) => Number.isFinite(id)) ?? [];
+
+  // Seguimiento sobre tarjeta visible: usar la planta del contexto UI
+  if (esConsultaDeSeguimiento(consultaActual) && idsContexto.length > 0) {
+    return chunksDesdeIds(idsContexto.slice(0, limite));
+  }
 
   const consultaExpandida = construirConsultaRAG(mensajes, consultaActual);
   const consultaVector =
@@ -203,6 +230,13 @@ export async function buscarContextoRAG(
   const textoConversacion = mensajes.map((m) => m.content).join("\n");
 
   if (esConsultaDeSeguimiento(consultaActual)) {
+    // Solo el último turno del asistente (evita mezclar plantas de mensajes antiguos)
+    const ultimoAsistente = [...mensajes].reverse().find((m) => m.role === "assistant")?.content ?? "";
+    const delUltimoTurno = await buscarPlantasMencionadasEnTexto(ultimoAsistente, limite);
+    if (delUltimoTurno.length > 0) {
+      return chunksDesdePlantas(delUltimoTurno.slice(0, limite));
+    }
+
     const delHistorial = await buscarPlantasMencionadasEnTexto(textoConversacion, limite);
     if (delHistorial.length > 0) {
       return chunksDesdePlantas(delHistorial.slice(0, limite));
@@ -238,6 +272,8 @@ export function construirPromptSistema(contexto: PlantEmbedding[]): string {
 
 REGLAS:
 - Responde SOLO con información del CONTEXTO RECUPERADO y el historial.
+- PROHIBIDO mencionar plantas que NO estén en el CONTEXTO RECUPERADO.
+- Usa EXACTAMENTE el nombre común de la planta del contexto; no sustituyas por otra especie.
 - Sé breve: máximo 150 palabras salvo que pidan varias plantas.
 - Formato obligatorio en markdown limpio:
   - Una planta: párrafo claro con viñetas (- ) para usos o propiedades.

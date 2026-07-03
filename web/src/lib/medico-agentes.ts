@@ -65,6 +65,7 @@ export function promptRecomendacion(
 
   return `Eres un equipo de dos especialistas del Médico Virtual de Farmacia Viva (México).
 Responde SOLO con información del CONTEXTO RECUPERADO. Español claro, máximo 280 palabras total.
+PROHIBIDO mencionar plantas que NO aparezcan en el CONTEXTO RECUPERADO. Usa los nombres exactos del contexto.
 
 PADECIMIENTO: ${pad.padecimiento}
 ESPECIALISTA CLÍNICO: ${pad.especialista}
