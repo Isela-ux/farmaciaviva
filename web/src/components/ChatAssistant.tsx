@@ -322,6 +322,23 @@ export function ChatAssistant({
                     agente={m.agente}
                     footer={
                       <>
+                        {m.agente === "alarma" && (
+                          <div className="mt-4 flex flex-wrap gap-2 border-t border-accent-coral/20 pt-4">
+                            <a
+                              href="tel:911"
+                              className="rounded-full bg-accent-coral px-4 py-2 text-xs font-semibold text-white shadow-sm transition hover:brightness-105"
+                            >
+                              📞 Llamar al 911 (México)
+                            </a>
+                            <button
+                              type="button"
+                              onClick={empezarNuevoMalestar}
+                              className="rounded-full border border-forest/20 bg-white px-4 py-2 text-xs font-semibold text-forest transition hover:bg-cream"
+                            >
+                              ✨ Nueva consulta
+                            </button>
+                          </div>
+                        )}
                         {m.plantas && m.plantas.length > 0 && (
                           <div className="flex justify-center border-t border-forest/6 pt-4">
                             <MedicoVirtualPlantas plantas={m.plantas.slice(0, 3)} />

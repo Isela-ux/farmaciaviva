@@ -31,6 +31,16 @@ export function presentacionAgente(agente?: MensajeGuia["agente"]): Presentacion
       badgeClass: "bg-sun-gold/20 text-forest",
     };
   }
+  if (agente === "alarma") {
+    return {
+      nombre: "Alerta de seguridad",
+      subtitulo: "Prioriza atención profesional",
+      avatar: "🚨",
+      bubbleClass:
+        "border-accent-coral/40 bg-gradient-to-br from-accent-coral/8 via-white to-cream shadow-md shadow-accent-coral/15",
+      badgeClass: "bg-accent-coral/15 text-accent-coral",
+    };
+  }
   if (agente === "sistema") {
     return {
       nombre: "Farmacia Viva",

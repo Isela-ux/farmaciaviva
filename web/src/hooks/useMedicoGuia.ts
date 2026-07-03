@@ -13,6 +13,11 @@ import {
   debeGenerarRecomendacion,
   prometeRecomendacion,
 } from "@/lib/medico-agentes";
+import {
+  aplicarPrecaucionATexto,
+  evaluarGuardrailClinico,
+  type ResultadoGuardrail,
+} from "@/lib/guardrails-clinicos";
 import type { PlantaMedicoVirtual } from "@/types/database";
 
 export type FaseGuia = "arbol" | "triaje" | "recomendacion" | "fin";
@@ -21,7 +26,7 @@ export type MensajeGuia = {
   id: string;
   role: "user" | "assistant";
   content: string;
-  agente?: "sistema" | "triaje" | "plantas";
+  agente?: "sistema" | "triaje" | "plantas" | "alarma";
   opciones?: { id: string; label: string }[];
   plantas?: PlantaMedicoVirtual[];
 };
@@ -98,7 +103,7 @@ async function llamarTriaje(
 async function llamarRecomendacion(
   padecimiento: PadecimientoSeleccionado,
   notasTriaje: string
-): Promise<{ texto: string; plantas: PlantaMedicoVirtual[] }> {
+): Promise<{ texto: string; plantas: PlantaMedicoVirtual[]; alarma?: boolean }> {
   const res = await fetch("/api/chat/guia", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -110,8 +115,12 @@ async function llamarRecomendacion(
     }),
   });
   if (!res.ok) throw new Error("recomendacion");
-  const data = (await res.json()) as { texto?: string; plantas?: PlantaMedicoVirtual[] };
-  return { texto: data.texto ?? "", plantas: data.plantas ?? [] };
+  const data = (await res.json()) as {
+    texto?: string;
+    plantas?: PlantaMedicoVirtual[];
+    alarma?: boolean;
+  };
+  return { texto: data.texto ?? "", plantas: data.plantas ?? [], alarma: data.alarma };
 }
 
 export function etiquetaAgenteGuia(agente?: MensajeGuia["agente"]): string | null {
@@ -145,6 +154,7 @@ export function useMedicoGuia() {
   const [notasTriaje, setNotasTriaje] = useState("");
   const [mensajesTriaje, setMensajesTriaje] = useState<{ role: string; content: string }[]>([]);
   const [mensajes, setMensajes] = useState<MensajeGuia[]>([]);
+  const [guardrailPrecaucion, setGuardrailPrecaucion] = useState<string | null>(null);
 
   const agregarMensaje = useCallback((msg: Omit<MensajeGuia, "id">) => {
     setMensajes((prev) => [...prev, { ...msg, id: uid() }]);
@@ -177,8 +187,54 @@ export function useMedicoGuia() {
     []
   );
 
+  const mensajesParaGuardrail = useCallback(
+    (): { role: string; content: string }[] => [
+      ...mensajesTriaje,
+      ...mensajes.map((m) => ({ role: m.role, content: m.content })),
+    ],
+    [mensajesTriaje, mensajes]
+  );
+
+  const activarEscalamientoUrgente = useCallback(
+    (resultado: ResultadoGuardrail) => {
+      setFase("fin");
+      setCargandoGuia(false);
+      setGuardrailPrecaucion(null);
+      agregarMensaje({
+        role: "assistant",
+        content: resultado.mensajeEscalamiento,
+        agente: "alarma",
+      });
+    },
+    [agregarMensaje]
+  );
+
+  const revisarGuardrail = useCallback(
+    (textoAdicional?: string): ResultadoGuardrail | null => {
+      const resultado = evaluarGuardrailClinico(mensajesParaGuardrail(), textoAdicional);
+      if (resultado.nivel === "urgente") {
+        activarEscalamientoUrgente(resultado);
+        return resultado;
+      }
+      if (resultado.nivel === "precaucion" && resultado.mensajePrecaucion) {
+        setGuardrailPrecaucion(resultado.mensajePrecaucion);
+      }
+      return resultado.nivel === "ninguno" ? null : resultado;
+    },
+    [mensajesParaGuardrail, activarEscalamientoUrgente]
+  );
+
   const generarRecomendacion = useCallback(
     async (pad: PadecimientoSeleccionado, notas: string) => {
+      const guardrail = evaluarGuardrailClinico(mensajesParaGuardrail(), notas);
+      if (guardrail.nivel === "urgente") {
+        activarEscalamientoUrgente(guardrail);
+        return;
+      }
+
+      const avisoPrecaucion =
+        guardrail.mensajePrecaucion ?? guardrailPrecaucion ?? undefined;
+
       setFase("recomendacion");
       setCargandoGuia(true);
       setErrorGuia(null);
@@ -191,20 +247,42 @@ export function useMedicoGuia() {
       });
 
       try {
-        const { texto, plantas } = await llamarRecomendacion(pad, notas);
+        const { texto, plantas, alarma } = await llamarRecomendacion(pad, notas);
         if (!texto.trim()) {
           throw new Error("Respuesta vacía del servidor");
         }
+        if (alarma) {
+          setMensajes((prev) => {
+            const sinEspera = prev.filter(
+              (m) => !(m.agente === "sistema" && /preparando tu/i.test(m.content))
+            );
+            return [
+              ...sinEspera,
+              { id: uid(), role: "assistant", content: texto, agente: "alarma" },
+            ];
+          });
+          setFase("fin");
+          setGuardrailPrecaucion(null);
+          return;
+        }
+        const textoFinal = aplicarPrecaucionATexto(texto, avisoPrecaucion);
         setMensajes((prev) => {
           const sinEspera = prev.filter(
             (m) => !(m.agente === "sistema" && /preparando tu/i.test(m.content))
           );
           return [
             ...sinEspera,
-            { id: uid(), role: "assistant", content: texto, agente: "plantas", plantas },
+            {
+              id: uid(),
+              role: "assistant",
+              content: textoFinal,
+              agente: "plantas",
+              plantas,
+            },
           ];
         });
         setFase("fin");
+        setGuardrailPrecaucion(null);
       } catch {
         setErrorGuia(
           "No se pudo generar la orientación y plantas. Escribe «muéstrame las plantas» para reintentar."
@@ -214,17 +292,19 @@ export function useMedicoGuia() {
         setCargandoGuia(false);
       }
     },
-    [agregarMensaje]
+    [agregarMensaje, mensajesParaGuardrail, activarEscalamientoUrgente, guardrailPrecaucion]
   );
 
   const iniciarTriaje = useCallback(
     async (pad: PadecimientoSeleccionado, mensajeOriginal?: string) => {
+      const mensajePaciente = mensajeOriginal?.trim() || pad.padecimiento;
+      if (revisarGuardrail(mensajePaciente)?.nivel === "urgente") return;
+
       setFase("triaje");
       setPadecimiento(pad);
       setCargandoGuia(true);
       setErrorGuia(null);
 
-      const mensajePaciente = mensajeOriginal?.trim() || pad.padecimiento;
       const contextoInicial = [
         {
           role: "user",
@@ -248,7 +328,7 @@ export function useMedicoGuia() {
         setCargandoGuia(false);
       }
     },
-    [agregarMensaje, generarRecomendacion]
+    [agregarMensaje, generarRecomendacion, revisarGuardrail]
   );
 
   const procesarArbol = useCallback(
@@ -342,6 +422,7 @@ export function useMedicoGuia() {
   const procesarTriaje = useCallback(
     async (texto: string) => {
       if (!padecimiento) return;
+      if (revisarGuardrail(texto)?.nivel === "urgente") return;
 
       const historial = [...mensajesTriaje, { role: "user", content: texto }];
       setMensajesTriaje(historial);
@@ -369,7 +450,7 @@ export function useMedicoGuia() {
       notasTriaje,
       agregarRespuestaAsistente,
       generarRecomendacion,
-      procesarConsultaPlanta,
+      revisarGuardrail,
       agregarMensaje,
     ]
   );
@@ -383,6 +464,7 @@ export function useMedicoGuia() {
       setPadecimiento(null);
       setNotasTriaje("");
       setMensajesTriaje([]);
+      setGuardrailPrecaucion(null);
       setErrorGuia(null);
       setMensajes([{ id: uid(), role: "user", content: textoUsuario }]);
       await procesarArbol(textoUsuario);
@@ -451,6 +533,7 @@ export function useMedicoGuia() {
     setPadecimiento(null);
     setNotasTriaje("");
     setMensajesTriaje([]);
+    setGuardrailPrecaucion(null);
     setErrorGuia(null);
     setMensajes([]);
   }, []);

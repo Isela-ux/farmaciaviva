@@ -12,6 +12,7 @@ import {
   promptTriaje,
 } from "@/lib/medico-agentes";
 import { DEEPSEEK_PROVIDER_OPTIONS, tieneClaveDeepSeek } from "@/lib/ai-config";
+import { evaluarGuardrailClinico } from "@/lib/guardrails-clinicos";
 import { buscarPlantasParaRecomendacion, obtenerPlantasPorIds } from "@/lib/plants";
 import { buscarContextoRAG, chunksDesdePlantasCatalogo, construirPromptSistema, modeloChat } from "@/lib/rag";
 
@@ -112,6 +113,18 @@ export async function POST(req: Request) {
   }
 
   if (fase === "recomendacion") {
+    const guardrail = evaluarGuardrailClinico(
+      [{ role: "user", content: notasTriajePrevias || padecimiento.padecimiento }],
+      padecimiento.padecimiento
+    );
+    if (guardrail.nivel === "urgente") {
+      return Response.json({
+        texto: guardrail.mensajeEscalamiento,
+        plantas: [],
+        alarma: true,
+      });
+    }
+
     const plantasRanked = await buscarPlantasParaRecomendacion(
       padecimiento,
       notasTriajePrevias,
@@ -137,8 +150,12 @@ export async function POST(req: Request) {
       ],
     });
 
+    const textoFinal = guardrail.mensajePrecaucion
+      ? `${guardrail.mensajePrecaucion}\n\n---\n\n${text}`
+      : text;
+
     return Response.json({
-      texto: text,
+      texto: textoFinal,
       plantas: await obtenerPlantasPorIds(
         (plantasRanked.length > 0
           ? plantasRanked.map((p) => p.nombreComun.id_especie)
