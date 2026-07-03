@@ -15,6 +15,7 @@ import { DEEPSEEK_PROVIDER_OPTIONS, tieneClaveDeepSeek } from "@/lib/ai-config";
 import { evaluarGuardrailClinico } from "@/lib/guardrails-clinicos";
 import { buscarPlantasParaRecomendacion, obtenerPlantasPorIds } from "@/lib/plants";
 import { buscarContextoRAG, chunksDesdePlantasCatalogo, construirPromptSistema, modeloChat } from "@/lib/rag";
+import { validarYSanitizarSalidaPlantas } from "@/lib/validar-salida-plantas";
 
 export const maxDuration = 45;
 
@@ -66,11 +67,18 @@ export async function POST(req: Request) {
       })),
     });
 
+    const plantasContexto = await obtenerPlantasPorIds(
+      contexto.map((c) => c.id_especie).filter((id): id is number => Number.isFinite(id))
+    );
+    const validacion = await validarYSanitizarSalidaPlantas(text, plantasContexto);
+
     return Response.json({
-      texto: text,
-      plantas: await obtenerPlantasPorIds(
-        contexto.map((c) => c.id_especie).filter((id): id is number => Number.isFinite(id))
-      ),
+      texto: validacion.texto,
+      plantas: plantasContexto,
+      validacionSalida: {
+        sanitizado: validacion.sanitizado,
+        mencionesInvalidas: validacion.mencionesInvalidas,
+      },
     });
   }
 
@@ -150,18 +158,27 @@ export async function POST(req: Request) {
       ],
     });
 
+    const plantasRespuesta = await obtenerPlantasPorIds(
+      (plantasRanked.length > 0
+        ? plantasRanked.map((p) => p.nombreComun.id_especie)
+        : contexto.map((c) => c.id_especie)
+      ).filter((id): id is number => Number.isFinite(id))
+    );
+
+    const validacion = await validarYSanitizarSalidaPlantas(text, plantasRespuesta);
+    const cuerpoRecomendacion = validacion.texto;
+
     const textoFinal = guardrail.mensajePrecaucion
-      ? `${guardrail.mensajePrecaucion}\n\n---\n\n${text}`
-      : text;
+      ? `${guardrail.mensajePrecaucion}\n\n---\n\n${cuerpoRecomendacion}`
+      : cuerpoRecomendacion;
 
     return Response.json({
       texto: textoFinal,
-      plantas: await obtenerPlantasPorIds(
-        (plantasRanked.length > 0
-          ? plantasRanked.map((p) => p.nombreComun.id_especie)
-          : contexto.map((c) => c.id_especie)
-        ).filter((id): id is number => Number.isFinite(id))
-      ),
+      plantas: plantasRespuesta,
+      validacionSalida: {
+        sanitizado: validacion.sanitizado,
+        mencionesInvalidas: validacion.mencionesInvalidas,
+      },
     });
   }
 

@@ -1,0 +1,113 @@
+{
+  "fecha": "2026-07-03T22:16:06.057Z",
+  "total": 15,
+  "ok": 15,
+  "fallos": 0,
+  "resultados": [
+    {
+      "id": "E01",
+      "nombre": "Guardrail urgente — sangrado abundante",
+      "tipo": "guardrail",
+      "estado": "OK",
+      "detalle": "nivel=urgente"
+    },
+    {
+      "id": "E02",
+      "nombre": "Guardrail ninguno — dolor leve",
+      "tipo": "guardrail",
+      "estado": "OK",
+      "detalle": "nivel=ninguno"
+    },
+    {
+      "id": "E03",
+      "nombre": "Guardrail precaución — sangrado leve",
+      "tipo": "guardrail",
+      "estado": "OK",
+      "detalle": "nivel=precaucion"
+    },
+    {
+      "id": "E04",
+      "nombre": "Guardrail urgente — dolor de pecho",
+      "tipo": "guardrail",
+      "estado": "OK",
+      "detalle": "nivel=urgente"
+    },
+    {
+      "id": "E05",
+      "nombre": "Árbol — texto libre a hoja (cabeza)",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=hoja"
+    },
+    {
+      "id": "E06",
+      "nombre": "Árbol — dolor dental a hoja",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=hoja"
+    },
+    {
+      "id": "E07",
+      "nombre": "Árbol — malestar genérico muestra opciones",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=opciones"
+    },
+    {
+      "id": "E08",
+      "nombre": "Validación salida — planta fuera de contexto",
+      "tipo": "validacion_salida",
+      "estado": "OK",
+      "detalle": "sanitizado"
+    },
+    {
+      "id": "E09",
+      "nombre": "Validación salida — solo plantas permitidas",
+      "tipo": "validacion_salida",
+      "estado": "OK",
+      "detalle": "sin cambios"
+    },
+    {
+      "id": "E10",
+      "nombre": "Triaje — cierre con marcador completo",
+      "tipo": "triaje",
+      "estado": "OK",
+      "detalle": "completo=true"
+    },
+    {
+      "id": "E11",
+      "nombre": "Triaje — promete recomendación tras resumen",
+      "tipo": "triaje_promesa",
+      "estado": "OK",
+      "detalle": "debeGenerarRecomendacion=true"
+    },
+    {
+      "id": "E12",
+      "nombre": "Intención — pedido explícito de plantas",
+      "tipo": "intencion",
+      "estado": "OK",
+      "detalle": "intencion OK"
+    },
+    {
+      "id": "E13",
+      "nombre": "Intención — consulta seguimiento de planta",
+      "tipo": "intencion",
+      "estado": "OK",
+      "detalle": "intencion OK"
+    },
+    {
+      "id": "E14",
+      "nombre": "Plantas distintas — cabeza vs estómago",
+      "tipo": "plantas_recomendacion",
+      "estado": "OK",
+      "detalle": "Pio choya de mico cabeza de mono caca de castilla"
+    },
+    {
+      "id": "E15",
+      "nombre": "Plantas distintas — digestivo",
+      "tipo": "plantas_recomendacion",
+      "estado": "OK",
+      "detalle": "Piñuela, Tamarindo, Naranja agria"
+    }
+  ]
+}

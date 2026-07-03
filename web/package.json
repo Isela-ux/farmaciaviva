@@ -11,6 +11,7 @@
     "embeddings:test": "node ../supabase/scripts/generate-embeddings.mjs --limit=10",
     "embeddings:validar": "node ../supabase/scripts/validar-embeddings.mjs",
     "rag:pruebas": "node ../supabase/scripts/rag-pruebas.mjs",
+    "medico:pruebas": "npx tsx --tsconfig tsconfig.json scripts/medico-conversacion-pruebas.ts",
     "prod:validar": "node ../supabase/scripts/validar-produccion.mjs"
   },
   "dependencies": {

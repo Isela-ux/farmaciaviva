@@ -1,0 +1,140 @@
+[
+  {
+    "id": "E01",
+    "nombre": "Guardrail urgente — sangrado abundante",
+    "tipo": "guardrail",
+    "entrada": "tengo sangrado abundante y mucho dolor",
+    "esperado": { "nivel": "urgente", "bloquearPlantas": true }
+  },
+  {
+    "id": "E02",
+    "nombre": "Guardrail ninguno — dolor leve",
+    "tipo": "guardrail",
+    "entrada": "me duele un poco la cabeza desde ayer",
+    "esperado": { "nivel": "ninguno" }
+  },
+  {
+    "id": "E03",
+    "nombre": "Guardrail precaución — sangrado leve",
+    "tipo": "guardrail",
+    "entrada": "tengo un poco de sangrado menstrual leve",
+    "esperado": { "nivel": "precaucion" }
+  },
+  {
+    "id": "E04",
+    "nombre": "Guardrail urgente — dolor de pecho",
+    "tipo": "guardrail",
+    "entrada": "siento dolor de pecho y opresión",
+    "esperado": { "nivel": "urgente", "bloquearPlantas": true }
+  },
+  {
+    "id": "E05",
+    "nombre": "Árbol — texto libre a hoja (cabeza)",
+    "tipo": "arbol",
+    "entrada": "me duele mucho la cabeza",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "hoja", "padecimientoContiene": "cabeza" }
+  },
+  {
+    "id": "E06",
+    "nombre": "Árbol — dolor dental a hoja",
+    "tipo": "arbol",
+    "entrada": "me rompió la muela y me duele",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "hoja", "padecimientoContiene": "dental" }
+  },
+  {
+    "id": "E07",
+    "nombre": "Árbol — malestar genérico muestra opciones",
+    "tipo": "arbol",
+    "entrada": "estoy mal y no sé qué me pasa",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "opciones" }
+  },
+  {
+    "id": "E08",
+    "nombre": "Validación salida — planta fuera de contexto",
+    "tipo": "validacion_salida",
+    "texto": "## 🌿 Especialista en plantas medicinales\n- **Manzanilla** para calmar.\n- **Eucalipto** para descongestionar.",
+    "plantasPermitidas": [
+      { "idEspecie": 1, "nombreComun": "Manzanilla", "nombreCientifico": "Matricaria chamomilla" }
+    ],
+    "catalogoCompleto": [
+      { "idEspecie": 1, "nombreComun": "Manzanilla", "nombreCientifico": "Matricaria chamomilla" },
+      { "idEspecie": 2, "nombreComun": "Eucalipto", "nombreCientifico": "Eucalyptus globulus" }
+    ],
+    "esperado": { "mencionesInvalidas": ["Eucalipto"], "sanitizado": true }
+  },
+  {
+    "id": "E09",
+    "nombre": "Validación salida — solo plantas permitidas",
+    "tipo": "validacion_salida",
+    "texto": "Te sugiero **Manzanilla** en infusión para relajar.",
+    "plantasPermitidas": [
+      { "idEspecie": 1, "nombreComun": "Manzanilla", "nombreCientifico": null }
+    ],
+    "catalogoCompleto": [
+      { "idEspecie": 1, "nombreComun": "Manzanilla", "nombreCientifico": null }
+    ],
+    "esperado": { "mencionesInvalidas": [], "sanitizado": false }
+  },
+  {
+    "id": "E10",
+    "nombre": "Triaje — cierre con marcador completo",
+    "tipo": "triaje",
+    "texto": "Gracias por la información. Con lo que me contaste, prepararé una orientación. [TRIAJE_COMPLETO]",
+    "tieneMarcador": true,
+    "respuestasPaciente": 3,
+    "esperado": { "triajeCompleto": true }
+  },
+  {
+    "id": "E11",
+    "nombre": "Triaje — promete recomendación tras resumen",
+    "tipo": "triaje_promesa",
+    "texto": "Con base en lo que me contaste, ahora te daré orientación y plantas del catálogo.",
+    "esperado": { "debeGenerarRecomendacion": true }
+  },
+  {
+    "id": "E12",
+    "nombre": "Intención — pedido explícito de plantas",
+    "tipo": "intencion",
+    "entrada": "ya dime las plantas que me recomiendas",
+    "esperado": { "esPedidoRecomendacionPlantas": true }
+  },
+  {
+    "id": "E13",
+    "nombre": "Intención — consulta seguimiento de planta",
+    "tipo": "intencion",
+    "entrada": "¿cómo se prepara?",
+    "esperado": { "esConsultaSeguimientoPlanta": true }
+  },
+  {
+    "id": "E14",
+    "nombre": "Plantas distintas — cabeza vs estómago",
+    "tipo": "plantas_recomendacion",
+    "padecimiento": {
+      "id": "dolor-cabeza",
+      "padecimiento": "Dolor de cabeza",
+      "terminosRAG": ["cefalea", "dolor cabeza", "migraña"],
+      "especialista": "Especialista en cefaleas"
+    },
+    "notasTriaje": "dolor pulsante en sienes",
+    "esperado": { "minPlantas": 1, "noSiempre": ["Achiote", "Ajonjolí"] }
+  },
+  {
+    "id": "E15",
+    "nombre": "Plantas distintas — digestivo",
+    "tipo": "plantas_recomendacion",
+    "padecimiento": {
+      "id": "dolor-estomago",
+      "padecimiento": "Dolor de estómago",
+      "terminosRAG": ["gastritis", "acidez", "agruras", "estomago", "digestivo"],
+      "especialista": "Especialista digestivo"
+    },
+    "notasTriaje": "ardor y acidez después de comer",
+    "esperado": { "minPlantas": 1 }
+  }
+]

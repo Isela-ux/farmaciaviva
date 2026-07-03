@@ -350,6 +350,10 @@ export function useMedicoGuia() {
       if (resultado.tipo === "hoja") {
         setNodoActualId(resultado.padecimiento.id);
         setRuta(resultado.padecimiento.ruta);
+
+        // Guardrail ANTES del mensaje «te haré preguntas» para no contradecir la alerta
+        if (revisarGuardrail(texto)?.nivel === "urgente") return;
+
         agregarMensaje({
           role: "assistant",
           content: resultado.mensajeAsistente,
@@ -366,7 +370,7 @@ export function useMedicoGuia() {
         opciones: resultado.opciones,
       });
     },
-    [nodoActualId, ruta, agregarMensaje, iniciarTriaje]
+    [nodoActualId, ruta, agregarMensaje, iniciarTriaje, revisarGuardrail]
   );
 
   const procesarConsultaPlanta = useCallback(
@@ -467,9 +471,12 @@ export function useMedicoGuia() {
       setGuardrailPrecaucion(null);
       setErrorGuia(null);
       setMensajes([{ id: uid(), role: "user", content: textoUsuario }]);
+
+      if (revisarGuardrail(textoUsuario)?.nivel === "urgente") return;
+
       await procesarArbol(textoUsuario);
     },
-    [procesarArbol]
+    [procesarArbol, revisarGuardrail]
   );
 
   const enviarGuia = useCallback(
@@ -478,6 +485,8 @@ export function useMedicoGuia() {
       if (!t || cargandoGuia || fase === "recomendacion") return false;
 
       agregarMensaje({ role: "user", content: t });
+
+      if (revisarGuardrail(t)?.nivel === "urgente") return true;
 
       // Recuperación: resumen prometió plantas pero no llegaron
       if (fase === "triaje" && padecimiento) {
