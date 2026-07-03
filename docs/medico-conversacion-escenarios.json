@@ -136,5 +136,20 @@
     },
     "notasTriaje": "ardor y acidez después de comer",
     "esperado": { "minPlantas": 1 }
+  },
+  {
+    "id": "E16",
+    "nombre": "Tarjetas solo plantas mencionadas en texto",
+    "tipo": "tarjetas_texto",
+    "texto": "## Especialista en plantas\n- **Paloma palomita** para fiebre.\n- **Hoja de sapo hierba del topo** para dolor.",
+    "plantasContexto": [
+      { "idEspecie": 10, "nombreComun": "Caña de azúcar", "nombreCientifico": "Saccharum officinarum" },
+      { "idEspecie": 20, "nombreComun": "Paloma palomita", "nombreCientifico": "Gonolobus uniflorus" },
+      { "idEspecie": 30, "nombreComun": "Hoja de sapo hierba del topo", "nombreCientifico": null }
+    ],
+    "esperado": {
+      "tarjetas": ["Paloma palomita", "Hoja de sapo hierba del topo"],
+      "excluir": ["Caña de azúcar"]
+    }
   }
 ]

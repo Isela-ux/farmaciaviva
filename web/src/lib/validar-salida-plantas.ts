@@ -9,6 +9,7 @@ export type ResultadoValidacionSalida = {
   mencionesValidas: string[];
   mencionesInvalidas: string[];
   sanitizado: boolean;
+  plantasParaTarjetas: PlantaMedicoVirtual[];
 };
 
 function plantasAReferencia(
@@ -97,6 +98,79 @@ export function sanitizarTextoPlantas(
   return out;
 }
 
+/**
+ * Plantas del contexto que el texto menciona (para tarjetas).
+ * Evita mostrar especies recuperadas por RAG que el LLM no recomendó.
+ */
+export function plantasMencionadasEnTextoSync(
+  texto: string,
+  plantasContexto: PlantaMedicoVirtual[]
+): PlantaMedicoVirtual[] {
+  if (!texto.trim() || !plantasContexto.length) return [];
+
+  const textoNorm = normalizarTextoBusqueda(texto);
+  const idsOrden: number[] = [];
+  const porId = new Map(plantasContexto.map((p) => [p.idEspecie, p]));
+
+  const ordenadas = [...plantasContexto].sort((a, b) => b.nombreComun.length - a.nombreComun.length);
+
+  for (const p of ordenadas) {
+    const comun = normalizarTextoBusqueda(p.nombreComun);
+    const cientifico = p.nombreCientifico ? normalizarTextoBusqueda(p.nombreCientifico) : "";
+    const genero = cientifico.split(/\s+/)[0] ?? "";
+
+    const coincideCompleto =
+      (comun.length >= 4 && textoNorm.includes(comun)) ||
+      (cientifico.length >= 5 &&
+        (textoNorm.includes(cientifico) || (genero.length >= 5 && textoNorm.includes(genero))));
+
+    if (coincideCompleto) {
+      if (!idsOrden.includes(p.idEspecie)) idsOrden.push(p.idEspecie);
+      continue;
+    }
+
+    // Fragmento inicial del nombre (ej. «Hoja de sapo» dentro de «Hoja de sapo hierba del topo»)
+    const tokens = comun.split(/\s+/).filter((t) => t.length >= 3);
+    for (let len = Math.min(tokens.length, 4); len >= 1; len--) {
+      const fragmento = tokens.slice(0, len).join(" ");
+      if (fragmento.length >= 4 && textoNorm.includes(fragmento)) {
+        if (!idsOrden.includes(p.idEspecie)) idsOrden.push(p.idEspecie);
+        break;
+      }
+    }
+  }
+
+  return idsOrden
+    .map((id) => porId.get(id))
+    .filter((p): p is PlantaMedicoVirtual => Boolean(p));
+}
+
+/** Versión async: busca en catálogo y restringe al contexto recuperado. */
+export async function plantasMencionadasParaTarjetas(
+  texto: string,
+  plantasContexto: PlantaMedicoVirtual[]
+): Promise<PlantaMedicoVirtual[]> {
+  if (!texto.trim() || !plantasContexto.length) return [];
+
+  const permitidasIds = new Set(plantasContexto.map((p) => p.idEspecie));
+  const mencionesCatalogo = await buscarPlantasMencionadasEnTexto(texto, 6);
+  const porId = new Map(plantasContexto.map((p) => [p.idEspecie, p]));
+  const idsOrden: number[] = [];
+
+  for (const m of mencionesCatalogo) {
+    const id = m.nombreComun.id_especie;
+    if (permitidasIds.has(id) && !idsOrden.includes(id)) idsOrden.push(id);
+  }
+
+  if (!idsOrden.length) {
+    return plantasMencionadasEnTextoSync(texto, plantasContexto);
+  }
+
+  return idsOrden
+    .map((id) => porId.get(id))
+    .filter((p): p is PlantaMedicoVirtual => Boolean(p));
+}
+
 /** Valida y sanitiza la salida del LLM contra las plantas del contexto recuperado. */
 export async function validarYSanitizarSalidaPlantas(
   texto: string,
@@ -108,6 +182,7 @@ export async function validarYSanitizarSalidaPlantas(
       mencionesValidas: [],
       mencionesInvalidas: [],
       sanitizado: false,
+      plantasParaTarjetas: [],
     };
   }
 
@@ -127,15 +202,27 @@ export async function validarYSanitizarSalidaPlantas(
   }
 
   if (!mencionesInvalidas.length) {
-    return { texto, mencionesValidas, mencionesInvalidas, sanitizado: false };
+    const plantasParaTarjetas = await plantasMencionadasParaTarjetas(texto, plantasPermitidas);
+    return {
+      texto,
+      mencionesValidas,
+      mencionesInvalidas,
+      sanitizado: false,
+      plantasParaTarjetas,
+    };
   }
 
   const textoSanitizado = sanitizarTextoPlantas(texto, plantasPermitidas, mencionesInvalidas);
+  const plantasParaTarjetas = await plantasMencionadasParaTarjetas(
+    textoSanitizado,
+    plantasPermitidas
+  );
   return {
     texto: textoSanitizado,
     mencionesValidas,
     mencionesInvalidas,
     sanitizado: true,
+    plantasParaTarjetas,
   };
 }
 
@@ -159,10 +246,6 @@ export function validarSalidaPlantasSync(
     }
   }
 
-  if (!mencionesInvalidas.length) {
-    return { texto, mencionesValidas, mencionesInvalidas, sanitizado: false };
-  }
-
   const comoMedico: PlantaMedicoVirtual[] = plantasPermitidas.map((p) => ({
     idEspecie: p.idEspecie,
     nombreComun: p.nombreComun,
@@ -170,11 +253,23 @@ export function validarSalidaPlantasSync(
     imagenUrl: null,
   }));
 
+  if (!mencionesInvalidas.length) {
+    return {
+      texto,
+      mencionesValidas,
+      mencionesInvalidas,
+      sanitizado: false,
+      plantasParaTarjetas: plantasMencionadasEnTextoSync(texto, comoMedico),
+    };
+  }
+
+  const textoSanitizado = sanitizarTextoPlantas(texto, comoMedico, mencionesInvalidas);
   return {
-    texto: sanitizarTextoPlantas(texto, comoMedico, mencionesInvalidas),
+    texto: textoSanitizado,
     mencionesValidas,
     mencionesInvalidas,
     sanitizado: true,
+    plantasParaTarjetas: plantasMencionadasEnTextoSync(textoSanitizado, comoMedico),
   };
 }
 

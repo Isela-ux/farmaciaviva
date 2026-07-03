@@ -17,7 +17,7 @@ import {
   evaluarTriajeCompleto,
   debeGenerarRecomendacion,
 } from "@/lib/medico-agentes";
-import { validarSalidaPlantasSync } from "@/lib/validar-salida-plantas";
+import { validarSalidaPlantasSync, plantasMencionadasEnTextoSync } from "@/lib/validar-salida-plantas";
 import { normalizarTextoBusqueda } from "@/lib/plants";
 import type { PadecimientoSeleccionado } from "@/lib/arbol-padecimientos";
 
@@ -40,6 +40,7 @@ type Escenario = {
   catalogoCompleto?: { idEspecie: number; nombreComun: string; nombreCientifico?: string | null }[];
   padecimiento?: PadecimientoSeleccionado;
   notasTriaje?: string;
+  plantasContexto?: { idEspecie: number; nombreComun: string; nombreCientifico?: string | null }[];
   esperado: Record<string, unknown>;
 };
 
@@ -335,6 +336,30 @@ function ejecutarEscenario(
           return { pasa: true, detalle: plantas.join(", ") };
         }
       );
+    }
+
+    case "tarjetas_texto": {
+      const ctx = (esc.plantasContexto ?? []).map((p) => ({
+        idEspecie: p.idEspecie,
+        nombreComun: p.nombreComun,
+        nombreCientifico: p.nombreCientifico ?? null,
+        imagenUrl: null,
+      }));
+      const tarjetas = plantasMencionadasEnTextoSync(esc.texto ?? "", ctx);
+      const nombres = tarjetas.map((p) => p.nombreComun);
+      const esperadas = (esc.esperado.tarjetas as string[]) ?? [];
+      const excluir = (esc.esperado.excluir as string[]) ?? [];
+
+      const faltan = esperadas.filter((n) => !nombres.includes(n));
+      const sobran = excluir.filter((n) => nombres.includes(n));
+
+      if (faltan.length || sobran.length) {
+        return Promise.resolve({
+          pasa: false,
+          detalle: `tarjetas=${nombres.join(", ")} faltan=${faltan.join(",")} sobran=${sobran.join(",")}`,
+        });
+      }
+      return Promise.resolve({ pasa: true, detalle: nombres.join(", ") });
     }
 
     default:

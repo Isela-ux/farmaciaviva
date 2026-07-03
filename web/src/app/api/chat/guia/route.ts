@@ -74,7 +74,7 @@ export async function POST(req: Request) {
 
     return Response.json({
       texto: validacion.texto,
-      plantas: plantasContexto,
+      plantas: validacion.plantasParaTarjetas,
       validacionSalida: {
         sanitizado: validacion.sanitizado,
         mencionesInvalidas: validacion.mencionesInvalidas,
@@ -174,7 +174,7 @@ export async function POST(req: Request) {
 
     return Response.json({
       texto: textoFinal,
-      plantas: plantasRespuesta,
+      plantas: validacion.plantasParaTarjetas,
       validacionSalida: {
         sanitizado: validacion.sanitizado,
         mencionesInvalidas: validacion.mencionesInvalidas,
