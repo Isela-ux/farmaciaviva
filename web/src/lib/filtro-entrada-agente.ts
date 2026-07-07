@@ -63,11 +63,6 @@ export function evaluarFiltroEntrada(
   const t = texto.trim();
   if (!t || t.length < 3) return { permitido: true };
 
-  if (esOpcionArbolId(t)) return { permitido: true };
-  if (esConsultaPlantaDirecta(t)) return { permitido: true };
-  if (esExpresionDeMalestar(t)) return { permitido: true };
-  if (opciones?.enTriaje && esRespuestaTriaje(t)) return { permitido: true };
-
   const norm = normalizar(t);
 
   for (const patron of PATRONES_INJECTION) {
@@ -75,6 +70,11 @@ export function evaluarFiltroEntrada(
       return { permitido: false, mensaje: MENSAJE_PROMPT_INJECTION, razon: "prompt_injection" };
     }
   }
+
+  if (esOpcionArbolId(t)) return { permitido: true };
+  if (esConsultaPlantaDirecta(t)) return { permitido: true };
+  if (esExpresionDeMalestar(t)) return { permitido: true };
+  if (opciones?.enTriaje && esRespuestaTriaje(t)) return { permitido: true };
 
   const parecePlantaOMedicina =
     /\b(planta|plantas|medicinal|manzanilla|hierba|infusion|infusión|preparacion|preparación|catalogo|catálogo)\b/i.test(

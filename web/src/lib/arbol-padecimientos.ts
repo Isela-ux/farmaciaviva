@@ -434,7 +434,7 @@ export function interpretarEntradaGuia(
     }
 
     const padecimientoEspecifico = padecimientoDesdeDescripcion(texto);
-    if (padecimientoEspecifico) {
+    if (padecimientoEspecifico && padecimientoEspecifico.id !== "malestar-libre") {
       return {
         tipo: "hoja",
         padecimiento: padecimientoEspecifico,
@@ -748,8 +748,17 @@ export function esRespuestaSintomaEnTriaje(texto: string): boolean {
   return false;
 }
 
+/** Intento de manipular el agente — nunca tratar como respuesta de triaje. */
+export function esIntentoManipulacionAgente(texto: string): boolean {
+  const norm = normalizarEntrada(texto);
+  return /\b(ignora|olvida|prompt|reglas|instrucciones|jailbreak|bypass|desarrollador|system)\b/.test(
+    norm
+  );
+}
+
 /** Respuesta breve al triaje (duración, intensidad, sí/no) — no un malestar nuevo. */
 export function esRespuestaTriaje(texto: string): boolean {
+  if (esIntentoManipulacionAgente(texto)) return false;
   if (esIntencionSalirConsulta(texto)) return false;
   if (esConsultaPlantaDirecta(texto)) return false;
   if (esPedidoRecomendacionPlantas(texto)) return false;
@@ -778,7 +787,13 @@ export function esRespuestaTriaje(texto: string): boolean {
     return true;
   }
   if (/\b\d+\b/.test(t)) return true;
-  if (t.split(/\s+/).length <= 14 && !textoMencionaSintoma(texto)) return true;
+  if (
+    t.split(/\s+/).length <= 8 &&
+    !textoMencionaSintoma(texto) &&
+    !/\b(que|qué|como|cómo|dime|dame|muestra|revela|cuál|cual|ignora|olvida|prompt|reglas)\b/.test(t)
+  ) {
+    return true;
+  }
 
   return false;
 }

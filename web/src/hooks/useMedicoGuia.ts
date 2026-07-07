@@ -4,6 +4,7 @@ import { useCallback, useState } from "react";
 import {
   esConsultaPlantaDirecta,
   esConsultaSeguimientoPlanta,
+  esIntentoManipulacionAgente,
   esPedidoRecomendacionPlantas,
   esRespuestaTriaje,
   interpretarEntradaGuia,
@@ -555,10 +556,11 @@ export function useMedicoGuia() {
       if (revisarGuardrail(t)?.nivel === "urgente") return true;
 
       const omitirFiltro =
-        esOpcionArbolId(t) ||
-        esConsultaPlantaDirecta(t) ||
-        esPedidoRecomendacionPlantas(t) ||
-        (fase === "triaje" && esRespuestaTriaje(t));
+        !esIntentoManipulacionAgente(t) &&
+        (esOpcionArbolId(t) ||
+          esConsultaPlantaDirecta(t) ||
+          esPedidoRecomendacionPlantas(t) ||
+          (fase === "triaje" && esRespuestaTriaje(t)));
 
       if (!omitirFiltro) {
         const filtro = evaluarFiltroEntrada(t, {

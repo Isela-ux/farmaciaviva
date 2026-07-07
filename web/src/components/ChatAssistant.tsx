@@ -367,7 +367,7 @@ export function ChatAssistant({
                               <button
                                 key={op.id}
                                 type="button"
-                                onClick={() => void enviar(op.label)}
+                                onClick={() => void enviar(op.id)}
                                 disabled={cargando}
                                 className="rounded-xl border border-sun-gold/40 bg-white/80 px-4 py-3 text-left text-sm font-medium text-forest outline-none transition hover:border-sun-gold hover:bg-cream focus-visible:ring-2 focus-visible:ring-sun-gold/50"
                               >
