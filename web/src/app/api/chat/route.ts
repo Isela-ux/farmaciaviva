@@ -1,6 +1,8 @@
 import { streamText, type UIMessage } from "ai";
 import { buscarContextoRAG, construirPromptSistema, modeloChat } from "@/lib/rag";
 import { DEEPSEEK_PROVIDER_OPTIONS, tieneClaveDeepSeek } from "@/lib/ai-config";
+import { evaluarFiltroEntrada } from "@/lib/filtro-entrada-agente";
+import { registrarEventoAgente } from "@/lib/agente-observabilidad";
 
 export const maxDuration = 30;
 
@@ -49,12 +51,29 @@ export async function POST(req: Request) {
     );
   }
 
+  const filtro = evaluarFiltroEntrada(consulta);
+  if (!filtro.permitido) {
+    registrarEventoAgente(
+      filtro.razon === "prompt_injection" ? "filtro_injection" : "filtro_off_topic",
+      { fuente: "api_chat" }
+    );
+    return new Response(JSON.stringify({ error: filtro.mensaje, filtro: filtro.razon }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
+
   const mensajesChat = messages.map((m) => ({
     role: m.role,
     content: textoDeMensaje(m),
   }));
 
   const contexto = await buscarContextoRAG(consulta, { mensajes: mensajesChat });
+  registrarEventoAgente("rag_contexto", {
+    fuente: "api_chat",
+    fragmentos: contexto.length,
+    especies: contexto.map((c) => c.id_especie).filter(Boolean),
+  });
   const system = construirPromptSistema(contexto);
 
   try {
@@ -74,6 +93,7 @@ export async function POST(req: Request) {
     });
   } catch (e) {
     const mensaje = e instanceof Error ? e.message : "Error desconocido";
+    registrarEventoAgente("error_api", { fuente: "api_chat", mensaje });
     console.error("[api/chat]", mensaje);
     return new Response(JSON.stringify({ error: mensaje }), {
       status: 500,

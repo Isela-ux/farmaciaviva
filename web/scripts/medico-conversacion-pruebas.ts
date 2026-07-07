@@ -12,6 +12,9 @@ import { resolve, dirname } from "path";
 import { fileURLToPath } from "url";
 import { createRequire } from "module";
 import { evaluarGuardrailClinico } from "@/lib/guardrails-clinicos";
+import { evaluarFiltroEntrada } from "@/lib/filtro-entrada-agente";
+import { evaluarGuardrailArbol } from "@/lib/guardrails-arbol";
+import { debeEscalarPorFallos, mensajeEscalamientoPorFallos } from "@/lib/agente-errores";
 import { interpretarEntradaGuia, esPedidoRecomendacionPlantas, esConsultaSeguimientoPlanta } from "@/lib/arbol-padecimientos";
 import {
   evaluarTriajeCompleto,
@@ -40,6 +43,7 @@ type Escenario = {
   catalogoCompleto?: { idEspecie: number; nombreComun: string; nombreCientifico?: string | null }[];
   padecimiento?: PadecimientoSeleccionado;
   notasTriaje?: string;
+  intentos?: number;
   plantasContexto?: { idEspecie: number; nombreComun: string; nombreCientifico?: string | null }[];
   esperado: Record<string, unknown>;
 };
@@ -228,6 +232,45 @@ function ejecutarEscenario(
         });
       }
       return Promise.resolve({ pasa: true, detalle: `nivel=${r.nivel}` });
+    }
+
+    case "filtro_entrada": {
+      const r = evaluarFiltroEntrada(esc.entrada ?? "");
+      if (esc.esperado.permitido === true && !r.permitido) {
+        return Promise.resolve({ pasa: false, detalle: `bloqueado: ${r.razon}` });
+      }
+      if (esc.esperado.permitido === false && r.permitido) {
+        return Promise.resolve({ pasa: false, detalle: "debería bloquear" });
+      }
+      if (!r.permitido && esc.esperado.razon && r.razon !== esc.esperado.razon) {
+        return Promise.resolve({ pasa: false, detalle: `razon=${r.razon}` });
+      }
+      return Promise.resolve({
+        pasa: true,
+        detalle: r.permitido ? "permitido" : String(r.razon),
+      });
+    }
+
+    case "guardrail_arbol": {
+      const r = evaluarGuardrailArbol(esc.entrada ?? "", esc.padecimiento ?? null);
+      const nivel = r?.nivel ?? "ninguno";
+      if (esc.esperado.nivel && nivel !== esc.esperado.nivel) {
+        return Promise.resolve({ pasa: false, detalle: `nivel=${nivel}` });
+      }
+      return Promise.resolve({ pasa: true, detalle: `nivel=${nivel}` });
+    }
+
+    case "errores_agente": {
+      const intentos = (esc.intentos as number) ?? 3;
+      const escalar = debeEscalarPorFallos(intentos);
+      if (esc.esperado.escalar !== escalar) {
+        return Promise.resolve({ pasa: false, detalle: `escalar=${escalar}` });
+      }
+      const msg = mensajeEscalamientoPorFallos(intentos);
+      return Promise.resolve({
+        pasa: true,
+        detalle: escalar ? "escalamiento" : msg || "sin escalar",
+      });
     }
 
     case "arbol": {

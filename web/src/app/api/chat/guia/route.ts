@@ -16,6 +16,7 @@ import { evaluarGuardrailClinico } from "@/lib/guardrails-clinicos";
 import { buscarPlantasParaRecomendacion, obtenerPlantasPorIds } from "@/lib/plants";
 import { buscarContextoRAG, chunksDesdePlantasCatalogo, construirPromptSistema, modeloChat } from "@/lib/rag";
 import { validarYSanitizarSalidaPlantas } from "@/lib/validar-salida-plantas";
+import { registrarEventoAgente } from "@/lib/agente-observabilidad";
 
 export const maxDuration = 45;
 
@@ -71,6 +72,12 @@ export async function POST(req: Request) {
       contexto.map((c) => c.id_especie).filter((id): id is number => Number.isFinite(id))
     );
     const validacion = await validarYSanitizarSalidaPlantas(text, plantasContexto);
+    if (validacion.sanitizado) {
+      registrarEventoAgente("validacion_salida", {
+        fuente: "consulta_planta",
+        invalidas: validacion.mencionesInvalidas,
+      });
+    }
 
     return Response.json({
       texto: validacion.texto,
@@ -166,6 +173,12 @@ export async function POST(req: Request) {
     );
 
     const validacion = await validarYSanitizarSalidaPlantas(text, plantasRespuesta);
+    if (validacion.sanitizado) {
+      registrarEventoAgente("validacion_salida", {
+        fuente: "recomendacion",
+        invalidas: validacion.mencionesInvalidas,
+      });
+    }
     const cuerpoRecomendacion = validacion.texto;
 
     const textoFinal = guardrail.mensajePrecaucion

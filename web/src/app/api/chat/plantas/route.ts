@@ -1,5 +1,8 @@
 import type { MensajeConversacion } from "@/lib/rag";
-import { buscarPlantasParaTarjetas } from "@/lib/plants";
+import { buscarContextoRAG } from "@/lib/rag";
+import { buscarPlantasParaTarjetas, obtenerPlantasPorIds } from "@/lib/plants";
+import { plantasMencionadasParaTarjetas } from "@/lib/validar-salida-plantas";
+import { registrarEventoAgente } from "@/lib/agente-observabilidad";
 
 export async function POST(req: Request) {
   const body = await req.json();
@@ -12,14 +15,34 @@ export async function POST(req: Request) {
   const respuestaAsistente =
     typeof body.respuestaAsistente === "string" ? body.respuestaAsistente.trim() : "";
 
+  const restringirAContextoRAG = body.restringirAContextoRAG === true;
+
   if (!consulta && !respuestaAsistente) {
     return Response.json({ plantas: [] });
   }
 
-  const plantas = await buscarPlantasParaTarjetas(
+  let plantas = await buscarPlantasParaTarjetas(
     consulta,
     messages,
     respuestaAsistente || undefined
   );
+
+  if (restringirAContextoRAG && respuestaAsistente) {
+    const contexto = await buscarContextoRAG(consulta, { mensajes: messages, limite: 3 });
+    const ids = contexto
+      .map((c) => c.id_especie)
+      .filter((id): id is number => Number.isFinite(id));
+    const plantasContexto = await obtenerPlantasPorIds(ids);
+    const filtradas = await plantasMencionadasParaTarjetas(respuestaAsistente, plantasContexto);
+    if (filtradas.length > 0) {
+      plantas = filtradas;
+      registrarEventoAgente("validacion_salida", {
+        fuente: "chat_plantas",
+        tarjetas: filtradas.length,
+        contexto: plantasContexto.length,
+      });
+    }
+  }
+
   return Response.json({ plantas });
 }

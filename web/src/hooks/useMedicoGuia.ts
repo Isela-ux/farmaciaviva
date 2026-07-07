@@ -18,6 +18,17 @@ import {
   evaluarGuardrailClinico,
   type ResultadoGuardrail,
 } from "@/lib/guardrails-clinicos";
+import { evaluarGuardrailArbol } from "@/lib/guardrails-arbol";
+import { evaluarFiltroEntrada, esOpcionArbolId } from "@/lib/filtro-entrada-agente";
+import {
+  debeEscalarPorFallos,
+  MAX_REINTENTOS_AGENTE,
+  mensajeEscalamientoPorFallos,
+  MENSAJE_ERROR_CONSULTA_PLANTA,
+  MENSAJE_ERROR_RECOMENDACION,
+  MENSAJE_ERROR_TRIAJE,
+} from "@/lib/agente-errores";
+import { registrarEventoAgente } from "@/lib/agente-observabilidad";
 import type { PlantaMedicoVirtual } from "@/types/database";
 
 export type FaseGuia = "arbol" | "triaje" | "recomendacion" | "fin";
@@ -155,10 +166,39 @@ export function useMedicoGuia() {
   const [mensajesTriaje, setMensajesTriaje] = useState<{ role: string; content: string }[]>([]);
   const [mensajes, setMensajes] = useState<MensajeGuia[]>([]);
   const [guardrailPrecaucion, setGuardrailPrecaucion] = useState<string | null>(null);
+  const [intentosFallidos, setIntentosFallidos] = useState(0);
 
   const agregarMensaje = useCallback((msg: Omit<MensajeGuia, "id">) => {
     setMensajes((prev) => [...prev, { ...msg, id: uid() }]);
   }, []);
+
+  const reiniciarFallos = useCallback(() => setIntentosFallidos(0), []);
+
+  const registrarFalloApi = useCallback((origen: string, mensaje: string) => {
+    setIntentosFallidos((n) => {
+      const next = n + 1;
+      registrarEventoAgente("error_api", { origen, intento: next });
+      if (debeEscalarPorFallos(next)) {
+        registrarEventoAgente("reintento_agotado", { origen, max: MAX_REINTENTOS_AGENTE });
+        setErrorGuia(mensajeEscalamientoPorFallos(next));
+        setFase("fin");
+      } else {
+        setErrorGuia(mensaje);
+      }
+      return next;
+    });
+  }, []);
+
+  const rechazarEntrada = useCallback(
+    (filtro: { permitido: false; mensaje: string; razon: "off_topic" | "prompt_injection" }) => {
+      registrarEventoAgente(
+        filtro.razon === "prompt_injection" ? "filtro_injection" : "filtro_off_topic"
+      );
+      agregarMensaje({ role: "assistant", content: filtro.mensaje, agente: "sistema" });
+      setFase("fin");
+    },
+    [agregarMensaje]
+  );
 
   const agregarRespuestaAsistente = useCallback(
     async (
@@ -197,6 +237,7 @@ export function useMedicoGuia() {
 
   const activarEscalamientoUrgente = useCallback(
     (resultado: ResultadoGuardrail) => {
+      registrarEventoAgente("guardrail_urgente", { motivos: resultado.motivos });
       setFase("fin");
       setCargandoGuia(false);
       setGuardrailPrecaucion(null);
@@ -217,6 +258,7 @@ export function useMedicoGuia() {
         return resultado;
       }
       if (resultado.nivel === "precaucion" && resultado.mensajePrecaucion) {
+        registrarEventoAgente("guardrail_precaucion", { motivos: resultado.motivos });
         setGuardrailPrecaucion(resultado.mensajePrecaucion);
       }
       return resultado.nivel === "ninguno" ? null : resultado;
@@ -283,16 +325,22 @@ export function useMedicoGuia() {
         });
         setFase("fin");
         setGuardrailPrecaucion(null);
+        reiniciarFallos();
       } catch {
-        setErrorGuia(
-          "No se pudo generar la orientación y plantas. Escribe «muéstrame las plantas» para reintentar."
-        );
+        registrarFalloApi("recomendacion", MENSAJE_ERROR_RECOMENDACION);
         setFase("triaje");
       } finally {
         setCargandoGuia(false);
       }
     },
-    [agregarMensaje, mensajesParaGuardrail, activarEscalamientoUrgente, guardrailPrecaucion]
+    [
+      agregarMensaje,
+      mensajesParaGuardrail,
+      activarEscalamientoUrgente,
+      guardrailPrecaucion,
+      registrarFalloApi,
+      reiniciarFallos,
+    ]
   );
 
   const iniciarTriaje = useCallback(
@@ -351,8 +399,14 @@ export function useMedicoGuia() {
         setNodoActualId(resultado.padecimiento.id);
         setRuta(resultado.padecimiento.ruta);
 
-        // Guardrail ANTES del mensaje «te haré preguntas» para no contradecir la alerta
-        if (revisarGuardrail(texto)?.nivel === "urgente") return;
+        const alarmaArbol = evaluarGuardrailArbol(texto, resultado.padecimiento);
+        if (alarmaArbol?.nivel === "urgente") {
+          activarEscalamientoUrgente(alarmaArbol);
+          return;
+        }
+        if (alarmaArbol?.nivel === "precaucion" && alarmaArbol.mensajePrecaucion) {
+          setGuardrailPrecaucion(alarmaArbol.mensajePrecaucion);
+        }
 
         agregarMensaje({
           role: "assistant",
@@ -370,7 +424,7 @@ export function useMedicoGuia() {
         opciones: resultado.opciones,
       });
     },
-    [nodoActualId, ruta, agregarMensaje, iniciarTriaje, revisarGuardrail]
+    [nodoActualId, ruta, agregarMensaje, iniciarTriaje, activarEscalamientoUrgente]
   );
 
   const procesarConsultaPlanta = useCallback(
@@ -415,7 +469,7 @@ export function useMedicoGuia() {
           }
         }
       } catch {
-        setErrorGuia("No se pudo consultar la planta en el catálogo.");
+        registrarFalloApi("consulta_planta", MENSAJE_ERROR_CONSULTA_PLANTA);
       } finally {
         setCargandoGuia(false);
       }
@@ -442,8 +496,9 @@ export function useMedicoGuia() {
         if (debeGenerarRecomendacion(res.texto, respuestas, res.triajeCompleto)) {
           await generarRecomendacion(padecimiento, res.notasTriaje);
         }
+        reiniciarFallos();
       } catch {
-        setErrorGuia("No se pudo continuar el triaje.");
+        registrarFalloApi("triaje", MENSAJE_ERROR_TRIAJE);
       } finally {
         setCargandoGuia(false);
       }
@@ -472,11 +527,21 @@ export function useMedicoGuia() {
       setErrorGuia(null);
       setMensajes([{ id: uid(), role: "user", content: textoUsuario }]);
 
-      if (revisarGuardrail(textoUsuario)?.nivel === "urgente") return;
+      const filtro = evaluarFiltroEntrada(textoUsuario, { inicioGuia: true });
+      if (!filtro.permitido) {
+        rechazarEntrada(filtro);
+        return;
+      }
+
+      const alarma = evaluarGuardrailArbol(textoUsuario);
+      if (alarma?.nivel === "urgente") {
+        activarEscalamientoUrgente(alarma);
+        return;
+      }
 
       await procesarArbol(textoUsuario);
     },
-    [procesarArbol, revisarGuardrail]
+    [procesarArbol, rechazarEntrada, activarEscalamientoUrgente]
   );
 
   const enviarGuia = useCallback(
@@ -487,6 +552,26 @@ export function useMedicoGuia() {
       agregarMensaje({ role: "user", content: t });
 
       if (revisarGuardrail(t)?.nivel === "urgente") return true;
+
+      if (fase === "arbol" && !esOpcionArbolId(t)) {
+        const filtro = evaluarFiltroEntrada(t);
+        if (!filtro.permitido) {
+          rechazarEntrada(filtro);
+          return true;
+        }
+      }
+      if (
+        fase === "triaje" &&
+        !esOpcionArbolId(t) &&
+        !esConsultaPlantaDirecta(t) &&
+        !esPedidoRecomendacionPlantas(t)
+      ) {
+        const filtro = evaluarFiltroEntrada(t, { enTriaje: true });
+        if (!filtro.permitido) {
+          rechazarEntrada(filtro);
+          return true;
+        }
+      }
 
       // Recuperación: resumen prometió plantas pero no llegaron
       if (fase === "triaje" && padecimiento) {
@@ -531,6 +616,7 @@ export function useMedicoGuia() {
       procesarTriaje,
       procesarConsultaPlanta,
       generarRecomendacion,
+      rechazarEntrada,
     ]
   );
 
@@ -545,7 +631,8 @@ export function useMedicoGuia() {
     setGuardrailPrecaucion(null);
     setErrorGuia(null);
     setMensajes([]);
-  }, []);
+    reiniciarFallos();
+  }, [reiniciarFallos]);
 
   const salirAChatLibre = useCallback(() => {
     reiniciarGuia();

@@ -24,6 +24,7 @@ import {
   esIntencionSalirConsulta,
   esRespuestaTriaje,
 } from "@/lib/arbol-padecimientos";
+import { evaluarFiltroEntrada } from "@/lib/filtro-entrada-agente";
 import type { PlantaMedicoVirtual } from "@/types/database";
 
 const SUGERENCIAS = [
@@ -49,7 +50,12 @@ async function buscarPlantasDelTurno(
   const res = await fetch("/api/chat/plantas", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ messages: mensajes, consulta, respuestaAsistente }),
+    body: JSON.stringify({
+      messages: mensajes,
+      consulta,
+      respuestaAsistente,
+      restringirAContextoRAG: true,
+    }),
   });
   if (!res.ok) return [];
   const data = (await res.json()) as { plantas?: PlantaMedicoVirtual[] };
@@ -71,6 +77,7 @@ export function ChatAssistant({
   const [plantasPorIndice, setPlantasPorIndice] = useState<Map<number, PlantaMedicoVirtual[]>>(
     new Map()
   );
+  const [avisoEntrada, setAvisoEntrada] = useState<string | null>(null);
 
   const guia = useMedicoGuia();
 
@@ -145,6 +152,13 @@ export function ChatAssistant({
       await guia.iniciarGuia(t);
       return;
     }
+
+    const filtro = evaluarFiltroEntrada(t);
+    if (!filtro.permitido) {
+      setAvisoEntrada(filtro.mensaje);
+      return;
+    }
+    setAvisoEntrada(null);
 
     void sendMessage({ text: t });
   }
@@ -423,6 +437,12 @@ export function ChatAssistant({
           {guia.errorGuia && (
             <div className="rounded-xl border border-accent-coral/30 bg-accent-coral/10 px-4 py-3 text-sm text-accent-coral">
               {guia.errorGuia}
+            </div>
+          )}
+
+          {avisoEntrada && (
+            <div className="rounded-xl border border-sun-gold/40 bg-sun-gold/10 px-4 py-3 text-sm text-academic-navy">
+              {avisoEntrada}
             </div>
           )}
 
