@@ -25,6 +25,7 @@ import {
   esRespuestaTriaje,
 } from "@/lib/arbol-padecimientos";
 import { evaluarFiltroEntrada } from "@/lib/filtro-entrada-agente";
+import { debeEnrutarAMedicoVirtual } from "@/lib/enrutar-medico-virtual";
 import type { PlantaMedicoVirtual } from "@/types/database";
 
 const SUGERENCIAS = [
@@ -119,8 +120,7 @@ export function ChatAssistant({
   }, [messages, cargandoChat, guia.enFlujoGuia, guia.fase]);
 
   function debeActivarGuiaConversacional(texto: string): boolean {
-    if (esConsultaPlantaDirecta(texto)) return false;
-    return esExpresionDeMalestar(texto);
+    return debeEnrutarAMedicoVirtual(texto);
   }
 
   async function enviar(texto: string) {

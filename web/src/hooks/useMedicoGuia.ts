@@ -5,6 +5,7 @@ import {
   esConsultaPlantaDirecta,
   esConsultaSeguimientoPlanta,
   esPedidoRecomendacionPlantas,
+  esRespuestaTriaje,
   interpretarEntradaGuia,
   type PadecimientoSeleccionado,
 } from "@/lib/arbol-padecimientos";
@@ -553,20 +554,17 @@ export function useMedicoGuia() {
 
       if (revisarGuardrail(t)?.nivel === "urgente") return true;
 
-      if (fase === "arbol" && !esOpcionArbolId(t)) {
-        const filtro = evaluarFiltroEntrada(t);
-        if (!filtro.permitido) {
-          rechazarEntrada(filtro);
-          return true;
-        }
-      }
-      if (
-        fase === "triaje" &&
-        !esOpcionArbolId(t) &&
-        !esConsultaPlantaDirecta(t) &&
-        !esPedidoRecomendacionPlantas(t)
-      ) {
-        const filtro = evaluarFiltroEntrada(t, { enTriaje: true });
+      const omitirFiltro =
+        esOpcionArbolId(t) ||
+        esConsultaPlantaDirecta(t) ||
+        esPedidoRecomendacionPlantas(t) ||
+        (fase === "triaje" && esRespuestaTriaje(t));
+
+      if (!omitirFiltro) {
+        const filtro = evaluarFiltroEntrada(t, {
+          enTriaje: fase === "triaje",
+          inicioGuia: fase === "arbol" && nodoActualId === "raiz" && ruta.length === 0,
+        });
         if (!filtro.permitido) {
           rechazarEntrada(filtro);
           return true;
@@ -608,6 +606,8 @@ export function useMedicoGuia() {
     [
       cargandoGuia,
       fase,
+      nodoActualId,
+      ruta,
       padecimiento,
       notasTriaje,
       mensajes,
@@ -617,6 +617,7 @@ export function useMedicoGuia() {
       procesarConsultaPlanta,
       generarRecomendacion,
       rechazarEntrada,
+      revisarGuardrail,
     ]
   );
 

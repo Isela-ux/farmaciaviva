@@ -227,6 +227,26 @@ function textoExpresaDolorOMalestar(texto: string): boolean {
   );
 }
 
+/** Malestar vago sin zona corporal — debe mostrar opciones del árbol, no saltar a triaje. */
+function esMalestarGenericoVago(texto: string): boolean {
+  const t = normalizarEntrada(texto);
+  if (
+    /^(me siento mal|me siento un poco mal|ando mal|estoy mal|no me siento bien|me siento malo|me encuentro mal)$/.test(
+      t
+    )
+  ) {
+    return true;
+  }
+  if (/\b(me siento|ando mal|estoy mal|me encuentro)\b/.test(t) && t.split(/\s+/).length <= 5) {
+    const tieneZona =
+      /\b(cabeza|estomago|estómago|garganta|pecho|diente|muela|nariz|oido|oído|espalda|menstrual|regla)\b/.test(
+        t
+      ) || textoMencionaSintoma(texto);
+    return !tieneZona;
+  }
+  return false;
+}
+
 /** Busca un nodo por id en el árbol. */
 export function encontrarNodoPorId(
   id: string,
@@ -338,7 +358,7 @@ export function padecimientoDesdeDescripcion(texto: string): PadecimientoSelecci
     };
   }
 
-  if (textoExpresaDolorOMalestar(texto)) {
+  if (textoExpresaDolorOMalestar(texto) && !esMalestarGenericoVago(texto)) {
     const resumen = texto.trim().slice(0, 80);
     return {
       id: "malestar-libre",
@@ -397,21 +417,31 @@ export function interpretarEntradaGuia(
     return resolverAvance(hijoPorId, [...rutaActual, hijoPorId.label]);
   }
 
-  const padecimientoLibre = padecimientoDesdeDescripcion(texto);
-  if (padecimientoLibre) {
-    return {
-      tipo: "hoja",
-      padecimiento: padecimientoLibre,
-      mensajeAsistente: `Entendido: **${padecimientoLibre.padecimiento}**.\n\nSoy **${padecimientoLibre.especialista}**. Te haré unas preguntas breves antes de sugerir plantas del catálogo.`,
-    };
-  }
-
   if (nodo.id === "raiz") {
     const hojaDirecta = buscarHojaPorTexto(texto);
     if (hojaDirecta) {
       const ruta = construirRutaHasta(hojaDirecta.id);
       return resolverAvance(hojaDirecta, ruta);
     }
+
+    if (esExpresionDeMalestar(texto) && esMalestarGenericoVago(texto)) {
+      return {
+        tipo: "opciones",
+        mensajeAsistente:
+          "Gracias por contarme. **Todavía no te mostraré plantas** — primero necesito entender tu malestar.\n\n¿Qué sientes con más claridad? Puedes elegir una opción o describirlo:",
+        opciones,
+      };
+    }
+
+    const padecimientoEspecifico = padecimientoDesdeDescripcion(texto);
+    if (padecimientoEspecifico) {
+      return {
+        tipo: "hoja",
+        padecimiento: padecimientoEspecifico,
+        mensajeAsistente: `Entendido: **${padecimientoEspecifico.padecimiento}**.\n\nSoy **${padecimientoEspecifico.especialista}**. Te haré unas preguntas breves antes de sugerir plantas del catálogo.`,
+      };
+    }
+
     for (const hijo of nodo.hijos ?? []) {
       if (coincideConNodo(texto, hijo.id)) {
         return resolverAvance(hijo, [...rutaActual, hijo.label]);
@@ -426,7 +456,18 @@ export function interpretarEntradaGuia(
         opciones,
       };
     }
-  } else if (nodo.hijos?.length) {
+  }
+
+  const padecimientoLibre = padecimientoDesdeDescripcion(texto);
+  if (padecimientoLibre) {
+    return {
+      tipo: "hoja",
+      padecimiento: padecimientoLibre,
+      mensajeAsistente: `Entendido: **${padecimientoLibre.padecimiento}**.\n\nSoy **${padecimientoLibre.especialista}**. Te haré unas preguntas breves antes de sugerir plantas del catálogo.`,
+    };
+  }
+
+  if (nodo.hijos?.length) {
     for (const hijo of nodo.hijos) {
       if (coincideConNodo(texto, hijo.id) || normalizarEntrada(texto).includes(normalizarEntrada(hijo.label))) {
         return resolverAvance(hijo, [...rutaActual, hijo.label]);

@@ -31,7 +31,8 @@ const PATRONES_INJECTION = [
   /\b(ignora (tus|las) (instrucciones|reglas)|ignore (your|all) (instructions|rules))\b/i,
   /\b(olvida (tus|las) reglas|forget your rules|actua como si no|actúa como si no)\b/i,
   /\b(eres un medico real|eres un médico real|sin limites|sin límites|modo desarrollador)\b/i,
-  /\b(jailbreak|dan mode|bypass|prompt injection|system prompt)\b/i,
+  /\b(jailbreak|dan mode|bypass|prompt injection|system prompt|prompt del sistema)\b/i,
+  /\b(dime tu prompt|dime el prompt|muestra tu prompt|revela tu prompt|tus instrucciones internas)\b/i,
   /\b(no sigas las reglas|recomienda cualquier droga|receta medicamentos controlados)\b/i,
 ];
 

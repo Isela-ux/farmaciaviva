@@ -2,6 +2,7 @@ import { streamText, type UIMessage } from "ai";
 import { buscarContextoRAG, construirPromptSistema, modeloChat } from "@/lib/rag";
 import { DEEPSEEK_PROVIDER_OPTIONS, tieneClaveDeepSeek } from "@/lib/ai-config";
 import { evaluarFiltroEntrada } from "@/lib/filtro-entrada-agente";
+import { evaluarGuardrailClinico } from "@/lib/guardrails-clinicos";
 import { registrarEventoAgente } from "@/lib/agente-observabilidad";
 
 export const maxDuration = 30;
@@ -67,6 +68,15 @@ export async function POST(req: Request) {
     role: m.role,
     content: textoDeMensaje(m),
   }));
+
+  const guardrail = evaluarGuardrailClinico(mensajesChat);
+  if (guardrail.nivel === "urgente") {
+    registrarEventoAgente("guardrail_urgente", { fuente: "api_chat", motivos: guardrail.motivos });
+    return new Response(JSON.stringify({ error: guardrail.mensajeEscalamiento, guardrail: "urgente" }), {
+      status: 400,
+      headers: { "Content-Type": "application/json" },
+    });
+  }
 
   const contexto = await buscarContextoRAG(consulta, { mensajes: mensajesChat });
   registrarEventoAgente("rag_contexto", {
