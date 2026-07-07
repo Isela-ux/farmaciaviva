@@ -228,22 +228,36 @@ function textoExpresaDolorOMalestar(texto: string): boolean {
 }
 
 /** Malestar vago sin zona corporal — debe mostrar opciones del árbol, no saltar a triaje. */
-function esMalestarGenericoVago(texto: string): boolean {
+export function esMalestarGenericoVago(texto: string): boolean {
   const t = normalizarEntrada(texto);
+
+  const tieneZonaCorporal =
+    /\b(cabeza|estomago|estómago|garganta|pecho|diente|muela|nariz|oido|oído|espalda|menstrual|regla|abdominal|lumbar)\b/.test(
+      t
+    ) || textoMencionaSintoma(texto);
+
+  if (tieneZonaCorporal) return false;
+
   if (
-    /^(me siento mal|me siento un poco mal|ando mal|estoy mal|no me siento bien|me siento malo|me encuentro mal)$/.test(
+    /\b(no se que me pasa|no sé qué me pasa|no se que tengo|no sé qué tengo|no se que es|no sé qué es)\b/.test(
       t
     )
   ) {
     return true;
   }
-  if (/\b(me siento|ando mal|estoy mal|me encuentro)\b/.test(t) && t.split(/\s+/).length <= 5) {
-    const tieneZona =
-      /\b(cabeza|estomago|estómago|garganta|pecho|diente|muela|nariz|oido|oído|espalda|menstrual|regla)\b/.test(
-        t
-      ) || textoMencionaSintoma(texto);
-    return !tieneZona;
+
+  if (/\b(me siento mal|no me siento bien|me siento malo|me siento un poco mal)\b/.test(t)) {
+    return true;
   }
+
+  if (/\b(ando mal|estoy mal|me encuentro mal)\b/.test(t)) {
+    return true;
+  }
+
+  if (/\b(me siento|me encuentro)\b/.test(t) && t.split(/\s+/).length <= 8) {
+    return true;
+  }
+
   return false;
 }
 

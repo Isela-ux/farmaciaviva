@@ -5,6 +5,7 @@ import {
   esConsultaPlantaDirecta,
   esConsultaSeguimientoPlanta,
   esIntentoManipulacionAgente,
+  esMalestarGenericoVago,
   esPedidoRecomendacionPlantas,
   esRespuestaTriaje,
   interpretarEntradaGuia,
@@ -552,6 +553,23 @@ export function useMedicoGuia() {
       if (!t || cargandoGuia || fase === "recomendacion") return false;
 
       agregarMensaje({ role: "user", content: t });
+
+      if (
+        (fase === "triaje" || fase === "fin") &&
+        esMalestarGenericoVago(t) &&
+        !esOpcionArbolId(t) &&
+        !esConsultaPlantaDirecta(t)
+      ) {
+        setPadecimiento(null);
+        setNotasTriaje("");
+        setMensajesTriaje([]);
+        setGuardrailPrecaucion(null);
+        setFase("arbol");
+        setNodoActualId("raiz");
+        setRuta([]);
+        await procesarArbol(t);
+        return true;
+      }
 
       if (revisarGuardrail(t)?.nivel === "urgente") return true;
 

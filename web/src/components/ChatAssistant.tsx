@@ -22,6 +22,7 @@ import {
   esConsultaPlantaDirecta,
   esExpresionDeMalestar,
   esIntencionSalirConsulta,
+  esMalestarGenericoVago,
   esRespuestaTriaje,
 } from "@/lib/arbol-padecimientos";
 import { evaluarFiltroEntrada } from "@/lib/filtro-entrada-agente";
@@ -134,6 +135,15 @@ export function ChatAssistant({
     }
 
     if (guia.enFlujoGuia || guia.fase === "triaje" || guia.fase === "arbol" || guia.fase === "fin") {
+      if (
+        (guia.fase === "fin" || guia.fase === "triaje") &&
+        esMalestarGenericoVago(t) &&
+        !esRespuestaTriaje(t)
+      ) {
+        guia.reiniciarGuia();
+        await guia.iniciarGuia(t);
+        return;
+      }
       if (
         guia.fase === "fin" &&
         debeActivarGuiaConversacional(t) &&

@@ -214,5 +214,14 @@
     "tipo": "errores_agente",
     "intentos": 3,
     "esperado": { "escalar": true }
+  },
+  {
+    "id": "E23",
+    "nombre": "Árbol — frase demo con hola muestra opciones",
+    "tipo": "arbol",
+    "entrada": "Hola, me siento mal y no sé qué me pasa",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "opciones" }
   }
 ]

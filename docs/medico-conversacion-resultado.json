@@ -1,7 +1,7 @@
 {
-  "fecha": "2026-07-07T01:30:10.509Z",
-  "total": 22,
-  "ok": 22,
+  "fecha": "2026-07-07T01:45:42.090Z",
+  "total": 23,
+  "ok": 23,
   "fallos": 0,
   "resultados": [
     {
@@ -157,6 +157,13 @@
       "tipo": "errores_agente",
       "estado": "OK",
       "detalle": "escalamiento"
+    },
+    {
+      "id": "E23",
+      "nombre": "Árbol — frase demo con hola muestra opciones",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=opciones"
     }
   ]
 }
