@@ -13,6 +13,11 @@ evidencia/
 └── semana5/
     ├── alumno-a/          ← S5-A1 … S5-A6
     └── alumno-b/          ← S5-B1 … S5-B7
+└── semana8/
+    ├── CHECKLIST.md       ← capturas cierre verano
+    ├── alumno-a/
+    ├── alumno-b/
+    └── tutoria/
 ```
 
 ## Cómo usar
@@ -26,4 +31,5 @@ evidencia/
 
 - [`docs/SEMANA_4_5_ENTREGABLES.md`](../docs/SEMANA_4_5_ENTREGABLES.md)
 - [`docs/ALUMNO_A_ENTREGABLE_SEMANA_4.md`](../docs/ALUMNO_A_ENTREGABLE_SEMANA_4.md)
+- [`docs/SEMANA_8_ENTREGABLES.md`](../docs/SEMANA_8_ENTREGABLES.md)
 - [`docs/ALUMNO_B_ENTREGABLE_SEMANA_5.md`](../docs/ALUMNO_B_ENTREGABLE_SEMANA_5.md)

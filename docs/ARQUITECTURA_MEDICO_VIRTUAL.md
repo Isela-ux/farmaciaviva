@@ -39,7 +39,7 @@ flowchart TB
 | Output validation | `validar-salida-plantas.ts` | Texto + tarjetas ⊆ contexto |
 | Observabilidad | `agente-observabilidad.ts` | Eventos estructurados (dev) |
 | Errores / reintentos | `agente-errores.ts` | Escalamiento tras 3 fallos de API |
-| Evals | `medico-conversacion-pruebas.ts` | 22 escenarios automatizados |
+| Evals | `medico-conversacion-pruebas.ts` | 23 escenarios automatizados |
 
 ---
 
@@ -112,7 +112,7 @@ flowchart TB
 
 ```bash
 cd web
-npm run medico:pruebas   # 22 escenarios — flujo agente
+npm run medico:pruebas   # 23 escenarios — flujo agente
 npm run rag:pruebas      # 15 escenarios — recuperación RAG
 ```
 

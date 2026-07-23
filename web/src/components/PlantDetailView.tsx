@@ -3,7 +3,44 @@ import Link from "next/link";
 import { SectionCard } from "@/components/SectionCard";
 import { etiquetaEspecie } from "@/lib/images";
 import { etiquetaMetadatosUbicacion } from "@/lib/plants";
-import type { FichaPlanta } from "@/types/database";
+import type { DetalleFuenteEspecie, FichaPlanta, UbicacionAgrupada } from "@/types/database";
+
+/** En ficha: máximo de ítems visibles para no saturar la UI. */
+const MAX_LISTA_FICHA = 5;
+
+function localidadesUnicasLimitadas(localidades: string[], max = MAX_LISTA_FICHA): string[] {
+  const vistas = new Set<string>();
+  const out: string[] = [];
+  for (const loc of localidades) {
+    const clave = loc.trim().toLowerCase();
+    if (!clave || vistas.has(clave)) continue;
+    vistas.add(clave);
+    out.push(loc.trim());
+    if (out.length >= max) break;
+  }
+  return out;
+}
+
+function ubicacionesParaFicha(grupos: UbicacionAgrupada[]): UbicacionAgrupada[] {
+  return grupos.slice(0, MAX_LISTA_FICHA).map((grupo) => ({
+    ...grupo,
+    localidades: localidadesUnicasLimitadas(grupo.localidades),
+  }));
+}
+
+/** Bibliografía sin duplicar la misma fuente; máximo 5. */
+function fuentesParaFicha(fuentes: DetalleFuenteEspecie[]): DetalleFuenteEspecie[] {
+  const vistas = new Set<string>();
+  const out: DetalleFuenteEspecie[] = [];
+  for (const df of fuentes) {
+    const clave = `${df.id_fuente}|${(df.cita_textual_resumida ?? "").trim().toLowerCase()}`;
+    if (vistas.has(clave)) continue;
+    vistas.add(clave);
+    out.push(df);
+    if (out.length >= MAX_LISTA_FICHA) break;
+  }
+  return out;
+}
 
 export function PlantDetailView({
   ficha,
@@ -17,6 +54,9 @@ export function PlantDetailView({
     nombreDestacado ||
     nombresComunes[0]?.nombre_comun ||
     etiquetaEspecie(especie);
+
+  const ubicacionesVisibles = ubicacionesParaFicha(ficha.ubicacionesAgrupadas);
+  const fuentesVisibles = fuentesParaFicha(ficha.fuentes);
 
   return (
     <article className="space-y-6">
@@ -262,10 +302,10 @@ export function PlantDetailView({
         </SectionCard>
       )}
 
-      {ficha.ubicacionesAgrupadas.length > 0 && (
+      {ubicacionesVisibles.length > 0 && (
         <SectionCard title="Ubicación geográfica">
           <ul className="space-y-3 text-sm">
-            {ficha.ubicacionesAgrupadas.map((grupo) => {
+            {ubicacionesVisibles.map((grupo) => {
               const metadatos = etiquetaMetadatosUbicacion(grupo);
               return (
                 <li key={`${grupo.tituloZona}|${metadatos}`}>
@@ -284,13 +324,19 @@ export function PlantDetailView({
               );
             })}
           </ul>
+          {(ficha.ubicacionesAgrupadas.length > MAX_LISTA_FICHA ||
+            ficha.ubicacionesAgrupadas.some((g) => g.localidades.length > MAX_LISTA_FICHA)) && (
+            <p className="mt-2 text-xs text-earth-soft">
+              Se muestran las primeras {MAX_LISTA_FICHA} entradas de ubicación.
+            </p>
+          )}
         </SectionCard>
       )}
 
-      {ficha.fuentes.length > 0 && (
+      {fuentesVisibles.length > 0 && (
         <SectionCard title="Bibliografía">
           <ul className="space-y-3 text-sm">
-            {ficha.fuentes.map((df) => {
+            {fuentesVisibles.map((df) => {
               const fuente = ficha.catalogoFuentes.get(df.id_fuente);
               return (
                 <li key={df.id_detalle_fuente} className="border-l-2 border-sage pl-3">
@@ -317,6 +363,11 @@ export function PlantDetailView({
               );
             })}
           </ul>
+          {ficha.fuentes.length > fuentesVisibles.length && (
+            <p className="mt-2 text-xs text-earth-soft">
+              Se muestran hasta {MAX_LISTA_FICHA} referencias (sin duplicados).
+            </p>
+          )}
         </SectionCard>
       )}
     </article>

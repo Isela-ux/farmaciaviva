@@ -1,7 +1,7 @@
 # Despliegue en Vercel — Farmacia Viva
 
 **Proyecto:** Farmacia Viva · VIC 2026  
-**URL producción:** https://project-gzlfs.vercel.app  
+**URL producción:** https://proyecto-gzlfs.vercel.app  
 **Repositorio:** https://github.com/Isela-ux/farmaciaviva  
 **Root directory en Vercel:** `web`
 
@@ -166,4 +166,4 @@ Vercel Edge / Serverless (Next.js 16 — web/)
 |-------|-------|
 | Documento | Proceso de despliegue Semana 7 |
 | Fecha | 26 / 07 / 2026 |
-| URL verificada | https://project-gzlfs.vercel.app |
+| URL verificada | https://proyecto-gzlfs.vercel.app |

@@ -1,3 +1,4 @@
+import { FormularioComentarios } from "@/components/FormularioComentarios";
 import { PlantCatalog } from "@/components/PlantCatalog";
 import { SupabaseErrorBanner } from "@/components/SupabaseErrorBanner";
 import { contarEspecies, obtenerCatalogoPlantas, obtenerFamilias } from "@/lib/plants";
@@ -38,6 +39,10 @@ export default async function CatalogoPage() {
       ) : (
         <PlantCatalog plantas={plantas} familias={familias} totalEspecies={totalEspecies} />
       )}
+
+      <div className="mt-12 border-t border-forest/8 pt-10">
+        <FormularioComentarios pagina="/catalogo" />
+      </div>
     </div>
   );
 }

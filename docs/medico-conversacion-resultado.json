@@ -1,7 +1,7 @@
 {
-  "fecha": "2026-07-07T01:45:42.090Z",
-  "total": 23,
-  "ok": 23,
+  "fecha": "2026-07-21T22:40:00.251Z",
+  "total": 27,
+  "ok": 27,
   "fallos": 0,
   "resultados": [
     {
@@ -164,6 +164,34 @@
       "tipo": "arbol",
       "estado": "OK",
       "detalle": "tipo=opciones"
+    },
+    {
+      "id": "E24",
+      "nombre": "Árbol — sangrado de nariz sin decir dolor",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=hoja"
+    },
+    {
+      "id": "E25",
+      "nombre": "Árbol — piel seca sin decir dolor",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=hoja"
+    },
+    {
+      "id": "E26",
+      "nombre": "Árbol — variante piel reseca",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=hoja"
+    },
+    {
+      "id": "E27",
+      "nombre": "Árbol — corte en el dedo",
+      "tipo": "arbol",
+      "estado": "OK",
+      "detalle": "tipo=hoja"
     }
   ]
 }

@@ -121,11 +121,13 @@ export function evaluarGuardrailClinico(
   return { nivel: "ninguno", motivos: [], bloquearPlantas: false, mensajeEscalamiento: "" };
 }
 
-/** Anteponer aviso de precaución a una recomendación con plantas. */
+/** Anteponer aviso de precaución a una recomendación con plantas (sin duplicar). */
 export function aplicarPrecaucionATexto(
   texto: string,
   precaucion?: string
 ): string {
   if (!precaucion?.trim()) return texto;
+  // La API /guia ya puede haber antepuesto el mismo aviso
+  if (/aviso de seguridad/i.test(texto)) return texto;
   return `${precaucion}\n\n---\n\n${texto}`;
 }

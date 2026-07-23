@@ -223,5 +223,41 @@
     "nodoActualId": "raiz",
     "ruta": [],
     "esperado": { "tipo": "opciones" }
+  },
+  {
+    "id": "E24",
+    "nombre": "Árbol — sangrado de nariz sin decir dolor",
+    "tipo": "arbol",
+    "entrada": "sangrado en la nariz",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "hoja", "padecimientoContiene": "nasal" }
+  },
+  {
+    "id": "E25",
+    "nombre": "Árbol — piel seca sin decir dolor",
+    "tipo": "arbol",
+    "entrada": "tengo la piel seca",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "hoja", "padecimientoContiene": "piel" }
+  },
+  {
+    "id": "E26",
+    "nombre": "Árbol — variante piel reseca",
+    "tipo": "arbol",
+    "entrada": "mi piel, la tengo seca",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "hoja", "padecimientoContiene": "piel" }
+  },
+  {
+    "id": "E27",
+    "nombre": "Árbol — corte en el dedo",
+    "tipo": "arbol",
+    "entrada": "me corte el dedo",
+    "nodoActualId": "raiz",
+    "ruta": [],
+    "esperado": { "tipo": "hoja", "padecimientoContiene": "corte" }
   }
 ]

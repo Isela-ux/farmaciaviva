@@ -195,6 +195,49 @@ const SINTOMAS_CONOCIDOS: Array<{
     terminosRAG: ["infeccion vaginal", "flujo", "ginecologico", "candidiasis"],
     especialista: "Especialista en salud ginecológica",
   },
+  {
+    patron:
+      /\b(sangrado (en|de|por)?\s*(la\s+)?nariz|sangrado nasal|me sangra (la )?nariz|sangro (de|por) (la )?nariz|epistaxis|hemorragia nasal)\b/,
+    id: "sintoma-sangrado-nariz",
+    label: "Sangrado de nariz",
+    padecimiento: "Sangrado nasal (epistaxis)",
+    terminosRAG: ["sangrado nasal", "epistaxis", "nariz", "hemorragia nasal", "respiratorio"],
+    especialista: "Especialista en vías respiratorias superiores",
+  },
+  {
+    patron:
+      /\b(piel seca|piel reseca|piel irritada|resequedad|resequedad de (la )?piel|tengo (la )?piel seca|mi piel.*(seca|reseca)|dermatitis|eccema|eczema|urticaria|erupcion|erupción|ronchas|comezon|comezón|picazon|picazón|picor|rash)\b/,
+    id: "sintoma-piel",
+    label: "Piel seca o irritada",
+    padecimiento: "Piel seca, resequedad o irritación cutánea",
+    terminosRAG: ["piel seca", "resequedad", "dermatitis", "cutaneo", "hidratante", "piel"],
+    especialista: "Especialista en piel y cuidado cutáneo",
+  },
+  {
+    patron: /\b(insomnio|no puedo dormir|no duermo|desvelo|dificultad para dormir)\b/,
+    id: "sintoma-insomnio",
+    label: "Insomnio",
+    padecimiento: "Insomnio o dificultad para dormir",
+    terminosRAG: ["insomnio", "sueno", "relajante", "ansiedad"],
+    especialista: "Especialista clínico",
+  },
+  {
+    patron: /\b(ansiedad|estres|estrés|nervios|nervioso|nerviosa|angustia)\b/,
+    id: "sintoma-ansiedad",
+    label: "Ansiedad o estrés",
+    padecimiento: "Ansiedad, estrés o nerviosismo",
+    terminosRAG: ["ansiedad", "estres", "relajante", "nervios", "calmante"],
+    especialista: "Especialista clínico",
+  },
+  {
+    patron:
+      /\b(me corte|me cort[eé]|corte (en|del|de)|cortada|herida|me lastime|me lastimé|me raspe|me raspé|raspada|raspón|raspon)\b/,
+    id: "sintoma-herida",
+    label: "Corte o herida",
+    padecimiento: "Corte, herida o lastimadura",
+    terminosRAG: ["herida", "corte", "cicatrizacion", "antiseptico", "piel"],
+    especialista: "Especialista en piel y cuidado cutáneo",
+  },
 ];
 
 function padecimientoDesdeSintoma(texto: string): PadecimientoSeleccionado | null {
@@ -223,7 +266,17 @@ function textoExpresaDolorOMalestar(texto: string): boolean {
   return (
     /\b(me duele|me duelen|duele|duelen|doliendo|dolor|me molesta|me molestan|siento|me arde|me pica)\b/.test(
       t
-    ) || /\b(han estado doliendo|estado doliendo|me han dolido|ultimamente me)\b/.test(t)
+    ) ||
+    /\b(han estado doliendo|estado doliendo|me han dolido|ultimamente me)\b/.test(t) ||
+    // Molestias sin decir «dolor»
+    /\b(sangrado|sangro|me sangra|inflamacion|inflamación|hinchazon|hinchazón|ronchas|ampollas)\b/.test(
+      t
+    ) ||
+    /\b(me corte|me cort[eé]|cortada|herida|me lastime|me lastimé|raspada|raspon|raspón)\b/.test(t) ||
+    /\b(piel|resequedad|dermatitis|eccema|eczema|urticaria|erupcion|erupción|comezon|comezón|picazon|picazón|picor)\b/.test(
+      t
+    ) ||
+    /\b(insomnio|ansiedad|estres|estrés|tos|fiebre|diarrea|nausea|náusea|mareo)\b/.test(t)
   );
 }
 
@@ -232,7 +285,7 @@ export function esMalestarGenericoVago(texto: string): boolean {
   const t = normalizarEntrada(texto);
 
   const tieneZonaCorporal =
-    /\b(cabeza|estomago|estómago|garganta|pecho|diente|muela|nariz|oido|oído|espalda|menstrual|regla|abdominal|lumbar)\b/.test(
+    /\b(cabeza|estomago|estómago|garganta|pecho|diente|muela|nariz|oido|oído|espalda|menstrual|regla|abdominal|lumbar|piel|ojos?)\b/.test(
       t
     ) || textoMencionaSintoma(texto);
 
@@ -358,6 +411,14 @@ export function padecimientoDesdeDescripcion(texto: string): PadecimientoSelecci
       terminosRAG: ["dolor pecho", "toracico"],
       especialista: "Especialista clínico",
     },
+    {
+      patron: /\b(piel|cutane|cutánea|dermat)\b/,
+      id: "sintoma-piel",
+      label: "Piel",
+      padecimiento: "Molestia o alteración de la piel",
+      terminosRAG: ["piel", "cutaneo", "dermatitis", "resequedad", "hidratante"],
+      especialista: "Especialista en piel y cuidado cutáneo",
+    },
   ];
 
   for (const item of mapa) {
@@ -462,12 +523,12 @@ export function interpretarEntradaGuia(
       }
     }
 
-    if (esExpresionDeMalestar(texto)) {
+    // Descripción concreta (ej. «piel seca») → triaje; no repetir el menú de opciones
+    if (padecimientoEspecifico) {
       return {
-        tipo: "opciones",
-        mensajeAsistente:
-          "Gracias por contarme. **Todavía no te mostraré plantas** — primero necesito entender tu malestar.\n\n¿Qué sientes con más claridad? Puedes elegir una opción o describirlo:",
-        opciones,
+        tipo: "hoja",
+        padecimiento: padecimientoEspecifico,
+        mensajeAsistente: `Entendido: **${padecimientoEspecifico.padecimiento}**.\n\nSoy **${padecimientoEspecifico.especialista}**. Te haré unas preguntas breves antes de sugerir plantas del catálogo.`,
       };
     }
   }
@@ -492,7 +553,7 @@ export function interpretarEntradaGuia(
   return {
     tipo: "no_entendido",
     mensajeAsistente:
-      "No identifiqué bien tu respuesta. Puedes elegir una opción o escribir con tus palabras, por ejemplo: «de cabeza», «menstrual» o «me duele la garganta».",
+      "No identifiqué bien tu respuesta. Puedes elegir una opción o escribir con tus palabras, por ejemplo: «de cabeza», «menstrual», «me duele la garganta» o «sangrado de nariz».",
     opciones,
   };
 }
