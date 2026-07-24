@@ -1,9 +1,14 @@
+"use client";
+
 import Image from "next/image";
 import Link from "next/link";
+import { useState } from "react";
 import type { PlantaCatalogo } from "@/types/database";
 
 export function PlantCard({ planta }: { planta: PlantaCatalogo }) {
   const { nombreComun, imagenUrl, nombreCientifico } = planta;
+  const [imagenRota, setImagenRota] = useState(false);
+  const mostrarFoto = Boolean(imagenUrl) && !imagenRota;
 
   return (
     <Link
@@ -11,9 +16,9 @@ export function PlantCard({ planta }: { planta: PlantaCatalogo }) {
       className="group flex flex-col overflow-hidden rounded-xl border-2 border-sun-gold/20 bg-card-white shadow-sm ring-1 ring-forest/5 outline-none transition hover:-translate-y-0.5 hover:border-sun-gold/40 hover:shadow-md focus-visible:ring-2 focus-visible:ring-sun-gold/50 focus-visible:ring-offset-2"
     >
       <div className="relative aspect-[4/3] bg-gradient-to-b from-mint-light/50 to-white">
-        {imagenUrl ? (
+        {mostrarFoto ? (
           <Image
-            src={imagenUrl}
+            src={imagenUrl!}
             alt={
               nombreCientifico
                 ? `${nombreComun.nombre_comun} (${nombreCientifico})`
@@ -23,6 +28,7 @@ export function PlantCard({ planta }: { planta: PlantaCatalogo }) {
             className="object-cover transition group-hover:scale-[1.02]"
             sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
             unoptimized
+            onError={() => setImagenRota(true)}
           />
         ) : (
           <div className="flex h-full items-center justify-center text-4xl text-sage">🌱</div>

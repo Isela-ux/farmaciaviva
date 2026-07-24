@@ -128,36 +128,50 @@ export function PlantDetailView({
         )}
 
         <SectionCard title="Datos generales">
-          <dl className="grid gap-2 text-sm">
+          <dl className="divide-y divide-forest/8">
             {especie.tipo_planta && (
-              <>
-                <dt className="font-medium text-forest">Tipo</dt>
-                <dd className="text-earth-soft">{especie.tipo_planta}</dd>
-              </>
+              <div className="flex items-baseline justify-between gap-4 py-3 first:pt-0">
+                <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-earth-soft">
+                  Tipo
+                </dt>
+                <dd className="text-right text-sm font-medium text-forest">{especie.tipo_planta}</dd>
+              </div>
             )}
             {especie.ciclo_vida && (
-              <>
-                <dt className="font-medium text-forest">Ciclo de vida</dt>
-                <dd className="text-earth-soft">{especie.ciclo_vida}</dd>
-              </>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-earth-soft">
+                  Ciclo de vida
+                </dt>
+                <dd className="text-right text-sm font-medium text-forest">{especie.ciclo_vida}</dd>
+              </div>
             )}
             {especie.origen_geografico && (
-              <>
-                <dt className="font-medium text-forest">Origen</dt>
-                <dd className="text-earth-soft">{especie.origen_geografico}</dd>
-              </>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-earth-soft">
+                  Origen
+                </dt>
+                <dd className="text-right text-sm font-medium text-forest">{especie.origen_geografico}</dd>
+              </div>
             )}
             {especie.estatus_conservacion && (
-              <>
-                <dt className="font-medium text-forest">Conservación</dt>
-                <dd className="text-earth-soft">{especie.estatus_conservacion}</dd>
-              </>
+              <div className="flex items-baseline justify-between gap-4 py-3">
+                <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-earth-soft">
+                  Conservación
+                </dt>
+                <dd className="text-right text-sm font-medium text-forest">
+                  {especie.estatus_conservacion}
+                </dd>
+              </div>
             )}
             {especie.es_endemica != null && (
-              <>
-                <dt className="font-medium text-forest">Endémica</dt>
-                <dd className="text-earth-soft">{especie.es_endemica ? "Sí" : "No"}</dd>
-              </>
+              <div className="flex items-baseline justify-between gap-4 py-3 last:pb-0">
+                <dt className="shrink-0 text-[11px] font-semibold uppercase tracking-[0.14em] text-earth-soft">
+                  Endémica
+                </dt>
+                <dd className="text-right text-sm font-medium text-forest">
+                  {especie.es_endemica ? "Sí" : "No"}
+                </dd>
+              </div>
             )}
           </dl>
         </SectionCard>

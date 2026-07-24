@@ -1,7 +1,7 @@
 import type { ImagenEspecie, NombreComun } from "@/types/database";
 
 export function normalizarUrlImagen(raw: string): string {
-  let url = raw.trim();
+  let url = raw.replace(/[\r\n\t]+/g, "").trim();
   if (!url) return url;
 
   const fixes = ["httphttps://", "https://https://", "hhttps://", "http://http://"];
@@ -51,10 +51,15 @@ export function ordenarImagenes(imagenes: ImagenEspecie[]): ImagenEspecie[] {
     });
 }
 
+/**
+ * Imagen para tarjeta del catálogo.
+ * Prefiere imagen ligada al nombre común; si no hay, usa la de la especie
+ * para que el listado no quede vacío.
+ */
 export function urlImagenParaLista(
   nombreComun: NombreComun,
   imagenes: ImagenEspecie[],
-  cantidadNombresPorEspecie: Map<number, number>
+  _cantidadNombresPorEspecie?: Map<number, number>
 ): string | null {
   const deEspecie = imagenes.filter((i) => i.id_especie === nombreComun.id_especie);
   const dedicada = deEspecie.filter((i) => i.id_nombre_comun === nombreComun.id_nombre_comun);
@@ -62,8 +67,7 @@ export function urlImagenParaLista(
   if (dedicada.length > 0) {
     return ordenarImagenes(dedicada)[0]?.url_imagen ?? null;
   }
-  if (deEspecie.some((i) => i.id_nombre_comun != null)) return null;
-  if ((cantidadNombresPorEspecie.get(nombreComun.id_especie) ?? 0) > 1) return null;
+
   return ordenarImagenes(deEspecie)[0]?.url_imagen ?? null;
 }
 
